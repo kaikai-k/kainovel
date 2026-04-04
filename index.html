@@ -1,1 +1,2976 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>カイくん恋愛ゲーム</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=Noto+Serif+JP:wght@300;400;600&display=swap');
+:root{
+  --pink:#e8608a; --pink-l:#f2a0bc; --pink-ll:#fce8f0;
+  --pink-d:#c0446e; --pg:linear-gradient(135deg,#e8608a,#f09ab8);
+  --gold:#c8a84b; --gold-l:#f0dfa0; --gold-ll:#fdf8e8;
+  --green:#3aaa7a; --text:#2a1520; --text-l:#b08098;
+  --sh:0 4px 24px rgba(200,80,120,.14); --r:14px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;overflow:hidden;}
+body{font-family:'Noto Sans JP',sans-serif;background:#111;color:var(--text);}
 
+/* ═══ SCREENS ═══ */
+.screen{position:fixed;inset:0;z-index:10;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+.screen.hidden{display:none!important;}
+
+/* ═══ TITLE ═══ */
+#title-screen{background:linear-gradient(160deg,#fff0f5 0%,#ffe8f2 45%,#f5e0ff 100%);}
+.t-bar{position:absolute;top:0;left:0;right:0;height:8px;background:var(--pg);}
+.t-petals{position:absolute;inset:0;pointer-events:none;overflow:hidden;}
+.petal{position:absolute;font-size:16px;opacity:0;animation:fall var(--d,8s) var(--dl,0s) ease-in infinite;}
+@keyframes fall{0%{opacity:0;transform:translateY(-20px) rotate(0)}10%{opacity:.7}90%{opacity:.2}100%{opacity:0;transform:translateY(110vh) rotate(400deg) translateX(30px)}}
+.t-icon{font-size:40px;animation:spin 14s linear infinite;margin-bottom:8px;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.t-logo{font-family:'Noto Serif JP',serif;font-size:clamp(20px,4.5vw,44px);font-weight:300;color:var(--pink-d);letter-spacing:.1em;text-shadow:0 2px 16px rgba(200,80,120,.22);margin-bottom:6px;text-align:center;max-width:90vw;overflow-wrap:break-word;}
+.t-sub{font-size:12px;color:var(--text-l);letter-spacing:.28em;margin-bottom:40px;}
+.t-btn{width:220px;padding:14px;margin:5px auto;display:block;background:#fff;border:2px solid var(--pink-l);border-radius:40px;color:var(--pink-d);font-family:'Noto Serif JP',serif;font-size:15px;cursor:pointer;letter-spacing:.1em;transition:all .22s;box-shadow:var(--sh);}
+.t-btn:hover{background:var(--pg);color:#ffffff;border-color:transparent;transform:translateY(-2px);}
+
+/* ═══ NAME INPUT ═══ */
+#name-screen{background:linear-gradient(160deg,#fff0f5,#ffe8f2);}
+.n-card{background:#fff;border-radius:22px;padding:36px 32px;width:min(420px,90vw);box-shadow:0 8px 40px rgba(200,80,120,.16);text-align:center;}
+.n-card h2{font-family:'Noto Serif JP',serif;font-size:19px;color:var(--pink-d);margin:12px 0 6px;}
+.n-card p{font-size:13px;color:var(--text-l);margin-bottom:22px;}
+.n-in{width:100%;border:2px solid var(--pink-l);border-radius:12px;padding:12px 14px;font-family:'Noto Serif JP',serif;font-size:18px;text-align:center;color:var(--text);outline:none;transition:border-color .2s;letter-spacing:.12em;}
+.n-in:focus{border-color:var(--pink);}
+.n-cnt{font-size:11px;color:var(--text-l);text-align:right;margin-top:3px;}
+.n-ok{margin-top:16px;width:100%;padding:13px;background:var(--pg);border:none;border-radius:12px;color:#ffffff;font-size:15px;font-weight:500;cursor:pointer;transition:all .2s;}
+.n-ok:hover{opacity:.85;}
+.n-skip{margin-top:10px;font-size:12px;color:var(--text-l);cursor:pointer;text-decoration:underline;}
+.n-skip:hover{color:var(--pink);}
+
+/* ═══ GAME ═══ */
+#game-screen{background:#1a1020;align-items:stretch;justify-content:stretch;}
+
+/* BG */
+#bg-layer{position:absolute;inset:0;background:linear-gradient(160deg,#d8c8d8,#c0b8cc);background-size:cover;background-position:center;z-index:0;}
+#bg-overlay{position:absolute;inset:0;background:rgba(0,0,0,0);z-index:1;transition:background .4s;pointer-events:none;}
+
+/* ── SPRITE – full bust-up (ref image 2 style) ──
+   Image fills the entire screen. Textbox overlays on top (z:10 > z:8).
+   object-fit:cover + object-position:top center keeps the face filling the frame.
+   The lower body is naturally hidden behind the textbox.
+*/
+#sprite-wrap{
+  position:absolute;
+  left:0;
+  right:0;
+  top:0;
+  bottom:0;
+  height:100%;
+  display:flex;
+  align-items:flex-end;
+  justify-content:center;
+  z-index:8;
+  pointer-events:none;
+  transition:opacity .35s;
+  overflow:hidden;
+}
+#sprite-wrap.hidden{opacity:0;}
+#sprite-img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  object-position:bottom center;
+  transform:translateY(12px);
+  filter:drop-shadow(0 4px 20px rgba(0,0,0,.22));
+  transition:opacity .25s, transform .25s;
+  display:block;
+}
+#sprite-img.fade{opacity:0;}
+
+/* ── HUD ── */
+/* HUD: 場所バッジを左上、ボタン群を右上に分離 */
+#hud{position:absolute;top:0;left:0;right:0;z-index:20;pointer-events:none;}
+#loc-badge{
+  position:absolute;top:10px;left:10px;
+  background:rgba(58,170,122,.92);border-radius:20px;
+  padding:5px 12px;font-size:12px;font-weight:500;color:#fff;
+  letter-spacing:.03em;white-space:nowrap;
+  box-shadow:0 2px 8px rgba(0,0,0,.18);
+  max-width:calc(50vw - 20px);overflow:hidden;text-overflow:ellipsis;
+  pointer-events:auto;transition:opacity .3s;
+}
+#loc-badge:empty{opacity:0;}
+#trb-wrap{
+  position:absolute;top:8px;right:8px;
+  display:flex;flex-wrap:nowrap;gap:4px;align-items:center;
+  pointer-events:auto;
+}
+#aff-hud{
+  position:absolute;top:44px;left:10px;
+  z-index:25;display:flex;flex-direction:column;align-items:flex-start;gap:3px;
+  background:rgba(15,10,25,.72);border:1px solid rgba(255,255,255,.2);
+  border-radius:12px;padding:5px 12px 6px;backdrop-filter:blur(10px);
+  box-shadow:0 2px 12px rgba(0,0,0,.28);min-width:110px;
+}
+#aff-label{
+  font-size:10px;color:rgba(255,255,255,.8);letter-spacing:.14em;
+  text-align:center;font-family:'Noto Sans JP',sans-serif;
+}
+#aff-bar-wrap{
+  width:100px;height:7px;background:rgba(255,255,255,.15);
+  border-radius:4px;overflow:hidden;
+}
+#aff-bar{
+  height:100%;width:0%;
+  background:linear-gradient(90deg,#e8608a,#f5a0c8);
+  border-radius:4px;transition:width .5s ease;
+}
+#aff-pct{
+  font-size:12px;font-weight:700;color:#ffffff;
+  font-family:'Noto Sans JP',sans-serif;letter-spacing:.04em;
+  text-shadow:0 1px 4px rgba(0,0,0,.4);
+}
+#hearts{display:none;}
+.heart{display:none;}
+.heart.empty{display:none;}
+#aff-pop{position:absolute;top:116px;left:10px;transform:none;z-index:30;font-size:14px;font-weight:700;color:#ffffff;background:#d81b60;padding:6px 12px;border-radius:20px;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,.12);text-shadow:0 1px 2px rgba(0,0,0,.5);}
+#aff-pop.show{opacity:1;}
+#trb{display:flex;gap:4px;flex-wrap:nowrap;align-items:center;}
+.hb{background:rgba(255,255,255,.84);border:1.5px solid rgba(255,255,255,.5);border-radius:20px;padding:4px 9px;font-size:11px;font-weight:500;color:#6a4058;cursor:pointer;backdrop-filter:blur(6px);transition:all .2s;white-space:nowrap;}
+.hb:hover{background:#fff;color:var(--pink);}
+#auto-btn.active{background:var(--pg);color:#ffffff;border-color:transparent;}
+#auto-corner{position:absolute;top:0;right:0;background:var(--pg);color:#ffffff;font-size:12px;font-weight:700;padding:6px 14px;border-bottom-left-radius:12px;z-index:25;display:none;letter-spacing:.12em;}
+#auto-corner.show{display:block;}
+
+/* ── TEXTBOX ── */
+#textbox{position:absolute;bottom:0;left:0;right:0;z-index:10;cursor:pointer;padding-bottom:18px;}
+#tb-inner{
+  margin:0 12px 0;
+  /* Warm parchment look like ref image */
+  background:rgba(253,248,232,.96);
+  border:2px solid var(--gold-l);
+  border-radius:var(--r);
+  padding:16px 20px 22px;
+  backdrop-filter:blur(12px);
+  box-shadow:0 -2px 20px rgba(180,140,60,.12),inset 0 1px 0 rgba(255,255,255,.6);
+  min-height:130px;
+  position:relative;
+}
+/* decorative corner flower */
+#tb-inner::after{content:'🌸';position:absolute;bottom:8px;right:14px;font-size:16px;opacity:.45;}
+#nm-wrap{position:absolute;top:-22px;left:12px;display:flex;align-items:center;gap:0;}
+#nm-icon{display:none !important;font-size:16px;opacity:.8;}
+#nm-tag{display:inline-block;background:var(--pg);color:#ffffff;font-size:13px;font-weight:500;padding:4px 20px;border-radius:20px;letter-spacing:.08em;min-width:60px;text-align:center;transition:opacity .2s;box-shadow:0 2px 8px rgba(200,80,120,.25);}
+#nm-tag[data-e="1"]{opacity:0;}
+#nm-icon[data-e="1"]{opacity:0;}
+#txt{font-family:'Noto Serif JP',serif;font-size:17px;line-height:2.0;color:var(--text);padding-top:2px;}
+#nxt{position:absolute;bottom:10px;right:36px;font-size:16px;opacity:0;animation:nb 1.1s ease-in-out infinite;}
+#nxt.v{opacity:1;}
+@keyframes nb{0%,100%{transform:translateY(0)}50%{transform:translateY(4px)}}
+
+/* ── CHOICES ── */
+#ch-wrap{position:absolute;inset:0;bottom:140px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:11px;z-index:15;padding:16px;background:rgba(253,240,210,.15);backdrop-filter:blur(3px);}
+#ch-wrap.hidden{display:none;}
+.cbtn{width:min(460px,90%);padding:14px 28px;background:rgba(253,248,232,.95);border:2px solid var(--gold-l);border-radius:40px;color:var(--pink-d);font-family:'Noto Serif JP',serif;font-size:15px;cursor:pointer;transition:all .2s;text-align:center;box-shadow:var(--sh);letter-spacing:.05em;position:relative;overflow:hidden;}
+.cbtn::before{content:'';position:absolute;inset:0;background:var(--pg);opacity:0;transition:opacity .2s;}
+.cbtn span{position:relative;z-index:1;}
+.cbtn:hover{color:#ffffff;border-color:transparent;transform:translateY(-2px);}
+.cbtn:hover::before{opacity:1;}
+
+/* ═══ CG LAYER ═══ */
+#cg-layer{
+  position:fixed;inset:0;z-index:50;
+  background:#000;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;
+  opacity:0;transition:opacity .5s;
+  pointer-events:none;
+}
+#cg-layer.show{opacity:1;pointer-events:auto;}
+#cg-img{max-width:100%;max-height:100%;object-fit:contain;}
+#cg-close{position:absolute;top:14px;right:16px;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.3);color:#ffffff;font-size:12px;padding:6px 14px;border-radius:20px;cursor:pointer;backdrop-filter:blur(6px);}
+#cg-tap{position:absolute;bottom:20px;left:50%;transform:translateX(-50%);color:rgba(255,255,255,.6);font-size:12px;letter-spacing:.12em;animation:nb 1.4s ease-in-out infinite;}
+
+/* ═══ MODALS ═══ */
+.mo{position:fixed;inset:0;background:rgba(30,10,20,.55);backdrop-filter:blur(8px);z-index:100;display:flex;align-items:center;justify-content:center;}
+.mo.hidden{display:none;}
+.mb{background:#fff;border-radius:20px;width:min(600px,96vw);max-height:92dvh;overflow-y:auto;padding:26px;box-shadow:0 16px 60px rgba(200,80,120,.2);scrollbar-width:thin;scrollbar-color:var(--pink-l) transparent;}
+.mb h2{font-family:'Noto Serif JP',serif;font-size:17px;color:var(--pink-d);margin-bottom:20px;display:flex;align-items:center;gap:8px;}
+.mb h2::before{content:'🌸';font-size:14px;}
+.mb h3{font-size:14px;color:var(--pink-d);margin:18px 0 10px;padding-left:8px;border-left:3px solid var(--pink-l);}
+.sl{font-size:12px;color:var(--text-l);margin-bottom:6px;display:block;}
+.si{width:100%;border:1.5px solid var(--pink-l);border-radius:10px;padding:10px 14px;font-size:14px;color:var(--text);outline:none;transition:border-color .2s;}
+.si:focus{border-color:var(--pink);}
+.ss{margin-bottom:16px;}
+.hint{font-size:11px;color:var(--text-l);margin-top:4px;}
+
+/* Location accordion */
+.loc-block{border:1.5px solid var(--pink-l);border-radius:12px;margin-bottom:10px;overflow:hidden;}
+.loc-head{background:var(--pink-ll);padding:10px 14px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;font-size:13px;font-weight:500;color:var(--pink-d);}
+.loc-head:hover{background:#fce0ec;}
+.loc-body{padding:14px;display:none;border-top:1px solid var(--pink-l);}
+.loc-body.open{display:block;}
+
+/* Expression grid */
+.eg{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:6px;}
+.es{border:1.5px dashed var(--pink-l);border-radius:10px;padding:10px 6px;text-align:center;cursor:pointer;transition:all .2s;position:relative;overflow:hidden;min-height:70px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;}
+.es:hover{border-color:var(--pink);background:var(--pink-ll);}
+.es input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;}
+.es .el{font-size:11px;color:var(--pink-d);font-weight:700;}
+.es .eh{font-size:12px;color:var(--text-l);}
+.es .eok{font-size:10px;color:var(--green);word-break:break-all;line-height:1.3;}
+
+.fz{border:1.5px dashed var(--pink-l);border-radius:10px;padding:12px;text-align:center;cursor:pointer;position:relative;overflow:hidden;transition:all .2s;font-size:13px;color:var(--text-l);}
+.fz:hover{border-color:var(--pink);background:var(--pink-ll);}
+.fz input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;}
+.fok{color:var(--green);font-size:11px;margin-top:3px;}
+.sr{display:flex;align-items:center;gap:10px;}
+.sr input[type=range]{flex:1;accent-color:var(--pink);}
+.sr span{font-size:13px;color:var(--text-l);min-width:28px;text-align:right;}
+
+/* Save/Log */
+.sg{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+.slot{background:var(--pink-ll);border:1.5px solid var(--pink-l);border-radius:12px;padding:10px;cursor:pointer;transition:all .2s;text-align:center;min-height:70px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;}
+.slot:hover{border-color:var(--pink);background:#fff;box-shadow:var(--sh);}
+.slot .sn{font-size:10px;color:var(--text-l);}
+.slot .st{font-size:12px;color:var(--text);line-height:1.4;}
+.slot .sd{font-size:10px;color:var(--text-l);}
+.slot.empty{color:var(--pink-l);font-size:22px;}
+#log-list{max-height:52dvh;overflow-y:auto;}
+.li{padding:9px 0;border-bottom:1px solid #f0e0e8;}
+.li .ln{font-size:11px;color:var(--pink);margin-bottom:2px;font-weight:500;}
+.li .lt{font-size:14px;color:var(--text);line-height:1.75;}
+.mf{display:flex;gap:10px;justify-content:flex-end;margin-top:18px;padding-top:14px;border-top:1px solid #f0e0e8;}
+.bc{background:transparent;border:1.5px solid var(--pink-l);color:var(--text-l);font-size:13px;padding:9px 18px;border-radius:8px;cursor:pointer;transition:all .2s;}
+.bc:hover{border-color:var(--text-l);color:var(--text);}
+.bp{background:var(--pg);border:none;color:#ffffff;font-size:13px;font-weight:500;padding:9px 22px;border-radius:8px;cursor:pointer;transition:all .2s;}
+.bp:hover{opacity:.85;}
+
+
+.sx{display:flex;align-items:center;gap:8px;}
+.sx .fz{flex:1;}
+.delbtn{background:#fff;border:1.5px solid var(--pink-l);color:var(--pink-d);font-size:12px;padding:8px 12px;border-radius:10px;cursor:pointer;white-space:nowrap;transition:all .2s;}
+.delbtn:hover{background:var(--pink-ll);}
+.delbtn:disabled{opacity:.45;cursor:not-allowed;}
+
+
+.code-badge{display:inline-block;margin-top:6px;padding:4px 8px;border-radius:999px;background:#fff;border:1px solid var(--pink-l);font-size:11px;color:var(--pink-d);font-family:monospace;}
+.preview-btn{margin-top:8px;background:var(--gold-ll);border:1.5px solid var(--gold-l);color:#ffffff;font-size:12px;padding:7px 12px;border-radius:10px;cursor:pointer;transition:all .2s;}
+.preview-btn:hover{background:#fff4cf;}
+
+@media(max-width:600px){
+  #txt{font-size:14px;}#tb-inner{min-height:100px;}
+  .sg{grid-template-columns:repeat(2,1fr);}
+  .hb{font-size:10px;padding:4px 8px;}
+  .eg{grid-template-columns:repeat(2,1fr);}
+  #aff-hud{top:44px;left:10px;padding:5px 10px;min-width:100px;background:rgba(15,10,25,.72)!important;}
+  .heart{font-size:18px;}
+  #aff-pop{position:absolute;top:116px;left:10px;transform:none;z-index:30;font-size:14px;font-weight:700;color:#ffffff;background:#d81b60;padding:6px 12px;border-radius:20px;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,.12);text-shadow:0 1px 2px rgba(0,0,0,.5);}
+}
+</style>
+</head>
+<body>
+
+<!-- ════ TITLE ════ -->
+<div id="title-screen" class="screen">
+  <div class="t-petals" id="petals"></div><div class="t-bar"></div>
+  <div class="t-icon">🌸</div>
+  <div class="t-logo" id="logo-txt">カイくん恋愛ゲーム</div>
+  <div class="t-sub">— Visual Novel —</div>
+  <button class="t-btn" onclick="goName()">🌸 ゲームスタート</button>
+  <button class="t-btn" onclick="openLoad('title')">📖 ロードして再開</button>
+  <button class="t-btn" id="title-settings-btn" onclick="openSettings()">⚙️ 設定</button>
+</div>
+
+<!-- ════ NAME ════ -->
+<div id="name-screen" class="screen hidden">
+  <div class="n-card">
+    <div style="font-size:34px">🌸</div>
+    <h2>あなたの名前を教えてください</h2>
+    <p>10文字以内で入力してください</p>
+    <input class="n-in" id="pni" type="text" maxlength="10" placeholder="名前を入力…" oninput="document.getElementById('nc').textContent=this.value.length">
+    <div class="n-cnt"><span id="nc">0</span> / 10</div>
+    <button class="n-ok" onclick="confirmName()">決定してスタート →</button>
+    <div class="n-skip" onclick="skipName()">「主人公」のままはじめる</div>
+  </div>
+</div>
+
+<!-- ════ GAME ════ -->
+<div id="game-screen" class="screen hidden">
+  <div id="bg-layer"></div>
+  <div id="bg-overlay"></div>
+
+  <div id="hud">
+    <div id="loc-badge"></div>
+    <div id="trb-wrap">
+      <div id="trb">
+        <button class="hb" id="auto-btn" onclick="toggleAuto()">AUTO</button>
+        <button class="hb" onclick="openLog()">ログ</button>
+        <button class="hb" onclick="openSave()">セーブ</button>
+        <button class="hb" onclick="openLoad('game')">ロード</button>
+        <button class="hb" id="game-settings-btn" onclick="openSettings()">設定</button>
+        <button class="hb" onclick="goTitle()">タイトル</button>
+      </div>
+    </div>
+  </div>
+  <div id="auto-corner">AUTO</div>
+
+  <div id="aff-hud">
+    <div id="aff-label">好感度</div>
+    <div id="aff-bar-wrap"><div id="aff-bar"></div></div>
+    <div id="aff-pct">0%</div>
+    <div id="hearts" style="display:none"></div>
+  </div>
+  <div id="aff-pop"></div>
+
+  <div id="sprite-wrap" class="hidden"><img id="sprite-img" src="" alt=""></div>
+  <div id="ch-wrap" class="hidden"></div>
+
+  <div id="textbox" onclick="handleClick()">
+    <div id="tb-inner">
+      <div id="nm-wrap">
+        <span id="nm-icon" data-e="1">🌸</span>
+        <span id="nm-tag" data-e="1"></span>
+      </div>
+      <div id="txt"></div>
+      <div id="nxt">▼</div>
+    </div>
+  </div>
+</div>
+
+<!-- ════ CG LAYER ════ -->
+<div id="cg-layer" onclick="closeCG()">
+  <img id="cg-img" src="" alt="">
+  <button id="cg-close" onclick="closeCG()">✕ 閉じる</button>
+  <div id="cg-tap">タップして続ける</div>
+</div>
+
+<!-- ════ SETTINGS ════ -->
+<div id="settings-modal" class="mo hidden">
+  <div class="mb">
+    <h2>設定</h2>
+    <div class="ss" style="background:var(--pink-ll);border:1.5px solid var(--pink-l);border-radius:12px;padding:12px;">
+      <label class="sl">🔒 アセット編集ロック（管理者専用）</label>
+      <div class="hint" style="margin-bottom:8px;">ゲームのプレイは誰でも可能ですが、背景/立ち絵/CG/BGM/SEの変更は管理者コード入力後のみ有効になります。</div>
+      <div class="sx">
+        <input class="si" id="asset-admin-code" type="password" placeholder="管理者コードを入力">
+        <button class="bp" type="button" onclick="unlockAssetEditor()">解除</button>
+      </div>
+      <div class="code-badge" id="asset-admin-status">🔒 ロック中（編集不可）</div>
+    </div>
+
+    <div class="ss"><label class="sl">🎮 ゲームタイトル</label><input class="si" id="s-title" type="text"></div>
+    <div class="ss"><label class="sl">👤 キャラクター名（ゲーム内表示）</label><input class="si" id="s-cname" type="text" placeholder="カイ"></div>
+
+    <h3>🎵 サウンド</h3>
+    <div class="ss"><label class="sl">BGM（ループ再生）</label><div class="sx"><div class="fz"><div>クリックで選択</div><div class="fok" id="bgm-ok"></div><input data-asset-admin type="file" accept="audio/*" onchange="handleBgmFile(event)"></div><button class="delbtn" id="clear-bgm-btn" type="button" onclick="clearGlobalBgm()" data-asset-admin>削除</button></div></div>
+    <div class="ss"><label class="sl">テキスト送りSE</label><div class="sx"><div class="fz"><div>クリックで選択</div><div class="fok" id="se-ok"></div><input data-asset-admin type="file" accept="audio/*" onchange="handleSeFile(event)"></div><button class="delbtn" id="clear-se-btn" type="button" onclick="clearSe()" data-asset-admin>削除</button></div></div>
+    <div class="ss"><label class="sl">選択肢クリックSE</label><div class="sx"><div class="fz"><div>クリックで選択</div><div class="fok" id="choice-se-ok"></div><input data-asset-admin type="file" accept="audio/*" onchange="handleChoiceSeFile(event)"></div><button class="delbtn" id="clear-choice-se-btn" type="button" onclick="clearChoiceSe()" data-asset-admin>削除</button></div></div>
+    <div class="ss"><label class="sl">テキスト切り替えSE（▼を押す時）</label><div class="sx"><div class="fz"><div>クリックで選択</div><div class="fok" id="next-se-ok"></div><input data-asset-admin type="file" accept="audio/*" onchange="handleNextSeFile(event)"></div><button class="delbtn" id="clear-next-se-btn" type="button" onclick="clearNextSe()" data-asset-admin>削除</button></div></div>
+    <div class="ss"><label class="sl">BGM音量</label><div class="sr"><input type="range" min="0" max="100" id="s-bv" oninput="lv('b',this.value)"><span id="bv-n">70</span></div></div>
+    <div class="ss"><label class="sl">SE音量</label><div class="sr"><input type="range" min="0" max="100" id="s-sv" oninput="lv('s',this.value)"><span id="sv-n">80</span></div></div>
+    <div class="ss"><label class="sl">テキスト速度</label><div class="sr"><input type="range" min="1" max="10" id="s-spd" oninput="document.getElementById('sp-n').textContent=this.value"><span id="sp-n">5</span></div></div>
+
+    <h3>🎼 シーン別BGM設定</h3>
+    <div class="hint" style="margin-bottom:10px">場所ごとにBGMを設定できます。未設定の場所では上の「BGM（ループ再生）」が流れます。</div>
+    <div id="scene-bgm-settings-container"></div>
+
+    <h3>🧷 デフォルト背景・立ち絵設定</h3>
+    <div class="hint" style="margin-bottom:10px">場所ごとの指定がない場合に使う背景と立ち絵です</div>
+    <div class="loc-block">
+      <div class="loc-head" onclick="this.nextElementSibling.classList.toggle('open')">
+        <span>🧷 デフォルト設定</span><span>▼</span>
+      </div>
+      <div class="loc-body" id="lb-default">
+        <div class="ss">
+          <label class="sl">🌅 デフォルト背景画像</label>
+          <div class="sx"><div class="fz"><div>クリックで選択</div><div class="fok" id="bgok-default"></div><input data-asset-admin type="file" accept="image/*" onchange="handleDefaultBg(event)"></div><button class="delbtn" type="button" onclick="clearDefaultBg()" id="clear-default-bg-btn" data-asset-admin>削除</button></div>
+        </div>
+        <div class="ss">
+          <label class="sl">🖼️ デフォルト立ち絵 4表情</label>
+          <div class="eg">
+            <div class="es"><div class="el">😐 通常</div><div class="eh">選択</div><div class="eok" id="spok-default-normal"></div><input data-asset-admin type="file" accept="image/*" onchange="handleDefaultSprite(event,'normal')"><button class="delbtn" style="margin-top:4px;padding:4px 10px;font-size:10px" type="button" onclick="clearDefaultSprite('normal')" id="clear-default-normal-btn" data-asset-admin>削除</button></div>
+            <div class="es"><div class="el">😊 笑顔</div><div class="eh">選択</div><div class="eok" id="spok-default-smile"></div><input data-asset-admin type="file" accept="image/*" onchange="handleDefaultSprite(event,'smile')"><button class="delbtn" style="margin-top:4px;padding:4px 10px;font-size:10px" type="button" onclick="clearDefaultSprite('smile')" id="clear-default-smile-btn" data-asset-admin>削除</button></div>
+            <div class="es"><div class="el">😲 驚き</div><div class="eh">選択</div><div class="eok" id="spok-default-surprise"></div><input data-asset-admin type="file" accept="image/*" onchange="handleDefaultSprite(event,'surprise')"><button class="delbtn" style="margin-top:4px;padding:4px 10px;font-size:10px" type="button" onclick="clearDefaultSprite('surprise')" id="clear-default-surprise-btn" data-asset-admin>削除</button></div>
+            <div class="es"><div class="el">😢 悲しみ</div><div class="eh">選択</div><div class="eok" id="spok-default-sad"></div><input data-asset-admin type="file" accept="image/*" onchange="handleDefaultSprite(event,'sad')"><button class="delbtn" style="margin-top:4px;padding:4px 10px;font-size:10px" type="button" onclick="clearDefaultSprite('sad')" id="clear-default-sad-btn" data-asset-admin>削除</button></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <h3>🌅 場所別 背景・衣装・立ち絵設定</h3>
+    <div class="hint" style="margin-bottom:10px">各場所をクリックして展開し、背景画像・立ち絵4表情を設定してください。未設定ならデフォルト設定が使われます。</div>
+    <div id="loc-settings-container"></div>
+    <h3>✨ カスタム場所（自由に使える場所）</h3>
+    <div class="hint" style="margin-bottom:10px;line-height:1.7">
+      カスタム場所1〜3 は自由に名前・背景・立ち絵を設定できます。<br>
+      シナリオで <code>{type:'location', loc:'custom_place1'}</code> と書くと呼び出せます。<br>
+      例：放課後の公園、屋台、カフェなど好きな場所に使ってください。
+    </div>
+
+    <h3>🖼️ シーン別CG画像登録</h3>
+    <div class="hint" style="margin-bottom:10px">各シーンで自動表示されるCG画像を登録します。画像を登録するとそのシーンで自動的に全画面表示されます。未登録のシーンはスキップされます。</div>
+    <div class="hint" style="margin-bottom:14px;line-height:1.7">例：初対面でぶつかる→「初対面・ぶつかるシーン」、席替え→「席替え・近くの席シーン」、LINE交換→「LINE交換シーン」、夏祭り後の気まずい廊下→「夏祭り後の廊下シーン」、告白の返事前→「告白の返事シーン」が自動表示されます。</div>
+    <div id="cg-settings-container"></div>
+
+    <div class="mf">
+      <button class="bc" onclick="cm('settings-modal')">キャンセル</button>
+      <button class="bp" onclick="applySettings()">適用して閉じる</button>
+    </div>
+  </div>
+</div>
+
+<!-- SAVE / LOAD / LOG -->
+<div id="save-modal" class="mo hidden"><div class="mb"><h2>セーブ</h2><div class="sg" id="save-slots"></div><div class="mf"><button class="bc" onclick="cm('save-modal')">閉じる</button></div></div></div>
+<div id="load-modal" class="mo hidden"><div class="mb"><h2>ロード</h2><div class="sg" id="load-slots"></div><div class="mf"><button class="bc" onclick="cm('load-modal')">閉じる</button></div></div></div>
+<div id="log-modal" class="mo hidden"><div class="mb"><h2>バックログ</h2><div id="log-list"></div><div class="mf"><button class="bc" onclick="cm('log-modal')">閉じる</button></div></div></div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   LOCATIONS CONFIG
+   各場所の ID・表示名・デフォルト背景色を定義します。
+   設定画面でこれらに背景画像と立ち絵4表情を登録できます。
+═══════════════════════════════════════════════════════════════ */
+const LOCATIONS = [
+  { id:'classroom',  name:'教室',           defaultBg:'linear-gradient(160deg,#d8c8d8,#c8c0d8)' },
+  { id:'hallway',    name:'廊下',           defaultBg:'linear-gradient(160deg,#e0d8c8,#c8c0b8)' },
+  { id:'library',    name:'図書室',         defaultBg:'linear-gradient(160deg,#c8d0c0,#b8c0b0)' },
+  { id:'festival',   name:'夏祭り会場',     defaultBg:'linear-gradient(160deg,#3a2a10,#5a3a18)' },
+  { id:'fireworks',  name:'花火会場',       defaultBg:'linear-gradient(160deg,#0a0a20,#1a1040)' },
+  { id:'other',      name:'屋上',            defaultBg:'linear-gradient(160deg,#b8d0c0,#a8c8d8)' },
+];
+
+const PLACE_PRESETS = [
+  { id:'classroom',        base:'classroom',  name:'教室',               defaultBg:'linear-gradient(160deg,#d8c8d8,#c8c0d8)' },
+  { id:'classroom_evening',base:'classroom',  name:'教室（夕方）',       defaultBg:'linear-gradient(160deg,#f1d1b2,#d9b0a0)' },
+  { id:'hallway',          base:'hallway',    name:'廊下',               defaultBg:'linear-gradient(160deg,#e0d8c8,#c8c0b8)' },
+  { id:'hallway_evening',  base:'hallway',    name:'廊下（夕方）',       defaultBg:'linear-gradient(160deg,#ead0b8,#c8b0a0)' },
+  { id:'library',          base:'library',    name:'図書室',             defaultBg:'linear-gradient(160deg,#c8d0c0,#b8c0b0)' },
+  { id:'library_evening',  base:'library',    name:'図書室（夕方）',     defaultBg:'linear-gradient(160deg,#d7c4b5,#b6a497)' },
+  { id:'festival',         base:'festival',   name:'夏祭り会場',         defaultBg:'linear-gradient(160deg,#3a2a10,#5a3a18)' },
+  { id:'fireworks',        base:'fireworks',  name:'花火会場',           defaultBg:'linear-gradient(160deg,#0a0a20,#1a1040)' },
+  { id:'rooftop_day',      base:'other',      name:'屋上（昼）',         defaultBg:'linear-gradient(160deg,#b8d0c0,#a8c8d8)' },
+  { id:'rooftop_evening',  base:'other',      name:'屋上（夕方）',       defaultBg:'linear-gradient(160deg,#f2c59f,#b98db2)' },
+  { id:'athletic_field',   base:'other',      name:'運動場',             defaultBg:'linear-gradient(160deg,#d6c3a1,#b57d4b)' },
+  { id:'gym',              base:'other',      name:'体育館',             defaultBg:'linear-gradient(160deg,#d7c7aa,#baa98d)' },
+  { id:'bedroom',          base:'other',      name:'自分の部屋',         defaultBg:'linear-gradient(160deg,#d8c8e0,#c0b8d0)' },
+  { id:'trip_bus',         base:'other',      name:'修学旅行・バス',      defaultBg:'linear-gradient(160deg,#c8b8a0,#b0a08a)' },
+  { id:'trip_hallway',     base:'other',      name:'宿の廊下',            defaultBg:'linear-gradient(160deg,#3a3020,#504030)' },
+  { id:'trip_sightseeing', base:'other',      name:'修学旅行・観光地',    defaultBg:'linear-gradient(160deg,#a8c8b8,#88a898)' },
+  { id:'trip_morning',     base:'other',      name:'修学旅行・朝',        defaultBg:'linear-gradient(160deg,#f8e8c8,#e0c8a0)' },
+  { id:'street_evening',   base:'other',      name:'帰り道（夕方）',      defaultBg:'linear-gradient(160deg,#f1c7a3,#d58bb0)' },
+  { id:'rainy_street',     base:'other',      name:'雨の帰り道',          defaultBg:'linear-gradient(160deg,#8c97a8,#596277)' },
+  { id:'custom_place1',    base:'other',      name:'カスタム場所1',      defaultBg:'linear-gradient(160deg,#c8c0c8,#b8b0c0)' },
+  { id:'custom_place2',    base:'other',      name:'カスタム場所2',      defaultBg:'linear-gradient(160deg,#c8c0c8,#b8b0c0)' },
+  { id:'custom_place3',    base:'other',      name:'カスタム場所3',      defaultBg:'linear-gradient(160deg,#c8c0c8,#b8b0c0)' },
+];
+// locData[placeId] = { bg: dataUrl|null, sprites: {normal,smile,surprise,sad} }
+const locData = {};
+const defaultAssets = {
+  bg: null,
+  sprites: { normal:null, smile:null, surprise:null, sad:null }
+};
+PLACE_PRESETS.forEach(l => {
+  locData[l.id] = { bg: null, sprites: { normal:null, smile:null, surprise:null, sad:null } };
+});
+
+// ── CG SCENE MAP ──────────────────────────────────────────────
+// シーンIDごとにCG画像を登録します。
+// 設定画面でシーンを選んで画像を登録してください。
+// シナリオの {type:'cg', scene:'fireworks'} で呼び出します。
+const CG_SCENES = [
+  { id:'first_meet',       label:'💥 初対面・ぶつかるシーン' },
+  { id:'seat_change',      label:'🪑 席替え・近くの席シーン' },
+  { id:'print_pass',       label:'📝 プリントを回すシーン' },
+  { id:'study_note',       label:'📚 勉強・紙切れシーン' },
+  { id:'forgotten_item',   label:'📓 忘れ物を届けるシーン' },
+  { id:'line_exchange',    label:'📱 LINE交換シーン' },
+  { id:'summer_invite',    label:'💌 夏祭りのお誘いシーン' },
+  { id:'festival_arrive',  label:'🏮 夏祭り到着シーン' },
+  { id:'festival_stall',   label:'🍎 屋台シーン' },
+  { id:'fireworks',        label:'🎆 花火シーン' },
+  { id:'handhold',         label:'🤝 手をつなぐシーン（Sweet End）' },
+  { id:'ending_sweet',     label:'💕 告白成功・True Ending' },
+  { id:'ending_bold',      label:'❤️ ボールドエンド' },
+  { id:'after_festival',   label:'🌙 夏祭り後の廊下シーン' },
+  { id:'rooftop_invite',   label:'🔑 屋上に誘うシーン' },
+  { id:'rooftop',          label:'🌤️ 屋上シーン' },
+  { id:'rooftop_close',    label:'💫 屋上・距離が縮まるシーン' },
+  { id:'confession',       label:'🌅 告白シーン（屋上）' },
+  { id:'confession_answer',label:'💞 告白の返事シーン' },
+  { id:'after_school',     label:'🌇 放課後シーン' },
+  { id:'classroom_close',  label:'📚 教室シーン' },
+  { id:'way_home',         label:'🚶 帰り道シーン' },
+  { id:'jealous',          label:'😈 嫉妬イベントシーン' },
+  { id:'sports_festival',  label:'🏃 体育祭シーン' },
+  { id:'cultural_festival',label:'🎭 文化祭シーン' },
+  { id:'trip_night',       label:'🚌 修学旅行の夜シーン' },
+  { id:'ending_true_love', label:'💖 恋人・高好感度エンド' },
+  { id:'ending_bad_love',  label:'🖤 バッドエンド（恋人崩壊）' },
+  { id:'ending_bad_notlove',label:'🖤 バッドエンド（届かない距離）' },
+  { id:'sports_lunch',     label:'🍱 体育祭・昼食シーン' },
+  { id:'culture_help',     label:'🎭 文化祭・一緒に作業シーン' },
+  { id:'trip_day2',        label:'🗺️ 修学旅行・自由行動シーン' },
+  { id:'trip_morning',     label:'🌅 修学旅行・最終日の朝シーン' },
+  { id:'ending_love_crack',label:'💔 恋人・すれ違いエンド' },
+  { id:'ending_bad_love',  label:'💀 バッドエンド（恋人・破綻）' },
+  { id:'ending_bad_cold',  label:'💀 バッドエンド（未成立・決別）' },
+  { id:'ending_unspoken',  label:'🌙 未成立・高好感度エンド' },
+  { id:'ending_apart',     label:'❌ 未成立・低好感度エンド' },
+  { id:'walk_home',        label:'🌇 一緒に帰るシーン' },
+  { id:'rainy_umbrella',   label:'☔ 相合傘シーン' },
+  { id:'scene_custom1',    label:'⭐ カスタムシーン1' },
+  { id:'scene_custom2',    label:'⭐ カスタムシーン2' },
+  { id:'scene_custom3',    label:'⭐ カスタムシーン3' },
+  { id:'scene_custom4',    label:'⭐ カスタムシーン4' },
+  { id:'scene_custom5',    label:'⭐ カスタムシーン5' },
+  { id:'scene_custom6',    label:'⭐ カスタムシーン6' },
+  { id:'scene_custom7',    label:'⭐ カスタムシーン7' },
+  { id:'scene_custom8',    label:'⭐ カスタムシーン8' },
+];
+const cgData = {}; // cgData[sceneId] = { url:null, name:'' }
+CG_SCENES.forEach(s => { cgData[s.id] = { url:null, name:'' }; });
+
+// シーン別BGM（場所ごと）
+// sceneBgmData[locId] = { url:null, name:'' }
+const sceneBgmData = {};
+PLACE_PRESETS.forEach(l => {
+  sceneBgmData[l.id] = { url:null, name:'' };
+});
+const ADMIN_ENTRY_KEY = 'kai_admin_mode';
+const OWNER_ASSET_CODE = 'SET-YOUR-SECRET-CODE';
+let assetAdminUnlocked = false;
+
+function isCustomPlace(placeId){
+  return /^custom_place\d+$/.test(placeId||'');
+}
+function isAdminMode(){
+  return sessionStorage.getItem(ADMIN_ENTRY_KEY)==='1';
+}
+function refreshSettingsAccess(){
+  const show = isAdminMode();
+  const titleBtn=document.getElementById('title-settings-btn');
+  const gameBtn=document.getElementById('game-settings-btn');
+  if(titleBtn) titleBtn.style.display = show ? 'block' : 'none';
+  if(gameBtn) gameBtn.style.display = show ? 'inline-flex' : 'none';
+}
+function canEditAssets(){
+  return assetAdminUnlocked;
+}
+function guardAssetEdit(){
+  if(canEditAssets()) return true;
+  alert('この操作は管理者のみ可能です。設定画面で管理者コードを入力してください。');
+  return false;
+}
+function unlockAssetEditor(){
+  const input=document.getElementById('asset-admin-code');
+  const code=input?.value || '';
+  if(code===OWNER_ASSET_CODE){
+    assetAdminUnlocked=true;
+    if(input) input.value='';
+    updateAssetEditorUI();
+    alert('管理者ロックを解除しました。');
+    buildSettingsUI();
+    return;
+  }
+  alert('管理者コードが違います。');
+}
+function updateAssetEditorUI(){
+  const status=document.getElementById('asset-admin-status');
+  if(status) status.textContent = canEditAssets() ? '🔓 解除済み（編集可能）' : '🔒 ロック中（編集不可）';
+  document.querySelectorAll('[data-asset-admin]').forEach(el=>{
+    el.disabled=!canEditAssets();
+    if(el.tagName==='INPUT' && el.type==='file'){
+      el.title=canEditAssets()?'':'管理者コードで解除すると編集できます';
+    }
+  });
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   SCENARIO
+   type: text / choice / jump / bg / location / bgm_play / bgm_stop
+         / affection_change / cg / overlay_dark / overlay_clear
+   location: LOCATIONS のid を指定
+   For sprite: costume:'yukata' uses the matching locData[currentLoc].sprites
+               (each location has its own 4 expression images = "costume")
+   cg: 'cg1'～'cg8'
+═══════════════════════════════════════════════════════════════ */
+const SCENARIO = {
+  start:[
+    {type:'location', loc:'classroom'},
+    {type:'bgm_play'},
+    {type:'text', name:'', text:'春、新学期。\n教室のドアを開けた瞬間——誰かとぶつかった。', sprite:false},
+    {type:'cg', scene:'first_meet'},
+    {type:'text', name:'CHAR1', text:'うわっ……！？　ご、ごめん……！', sprite:true, expr:'surprise'},
+    {type:'text', name:'', text:'銀髪の男の子が、慌てた様子でこちらを見上げる。\n（内心：やば、またやった……絶対第一印象終わった……）', sprite:true, expr:'surprise'},
+    {type:'choice', choices:[
+      {text:'「大丈夫？」', next:'meet_kind', affection:1},
+      {text:'「ちゃんと前見てよ」', next:'meet_tsun', affection:-1},
+      {text:'「今の、わざと？」', next:'meet_cool', affection:1},
+    ]},
+  ],
+  meet_kind:[
+    {type:'text', name:'CHAR1', text:'え、あ……ありがと。優しいな……', sprite:true, expr:'smile'},
+    {type:'text', name:'', text:'（内心：助かった……この人いい人すぎる……）', sprite:true, expr:'smile'},
+    {type:'jump', label:'contact_scene'},
+  ],
+  meet_tsun:[
+    {type:'text', name:'CHAR1', text:'は？　見てたけど……そっちこそ急に来ただろ', sprite:true, expr:'normal'},
+    {type:'text', name:'', text:'（内心：普通に俺が悪いのに言い返しちゃった……）', sprite:true, expr:'sad'},
+    {type:'jump', label:'contact_scene'},
+  ],
+  meet_cool:[
+    {type:'text', name:'CHAR1', text:'……いや、わざとじゃない。', sprite:true, expr:'normal'},
+    {type:'text', name:'CHAR1', text:'でも、印象には残っただろ？', sprite:true, expr:'smile'},
+    {type:'text', name:'', text:'（内心：ちょっとかっこつけた。今のどうだった……？）', sprite:true, expr:'smile'},
+    {type:'jump', label:'contact_scene'},
+  ],
+  contact_scene:[
+    {type:'text', name:'', text:'少し気まずい空気のあと、カイが足元のプリントを拾い上げた。', sprite:true, expr:'normal'},
+    {type:'text', name:'CHAR1', text:'……これ、次の移動教室の案内だよな。俺、こういうの毎回ちょっと迷うんだけど。', sprite:true, expr:'normal'},
+    {type:'text', name:'', text:'（内心：連絡先聞くのはさすがに早いよな……まずは普通に話したい）', sprite:true, expr:'sad'},
+    {type:'choice', choices:[
+      {text:'「一緒に行こうか？」', next:'contact_ok', affection:2},
+      {text:'「掲示板見ればわかるよ」', next:'contact_why', affection:1},
+      {text:'「また迷子になりそうだね」', next:'contact_cond', affection:-1},
+    ]},
+  ],
+  contact_ok:[
+    {type:'text', name:'CHAR1', text:'え、ほんとに？　助かる……。', sprite:true, expr:'surprise'},
+    {type:'text', name:'CHAR1', text:'じゃあ、その……次の授業、一緒に行ってもいい？', sprite:true, expr:'smile'},
+    {type:'text', name:'', text:'（内心：よし、自然。今のはたぶん自然……！）', sprite:true, expr:'smile'},
+    {type:'jump', label:'class_skip'},
+  ],
+  contact_why:[
+    {type:'text', name:'CHAR1', text:'それはそうなんだけど……人多いと見逃すんだよ。', sprite:true, expr:'normal'},
+    {type:'text', name:'CHAR1', text:'……よかったら、あとで教えて。', sprite:true, expr:'sad'},
+    {type:'text', name:'', text:'（内心：頼りないって思われたかも……）', sprite:true, expr:'sad'},
+    {type:'jump', label:'class_skip'},
+  ],
+  contact_cond:[
+    {type:'text', name:'CHAR1', text:'う……否定できない。', sprite:true, expr:'surprise'},
+    {type:'text', name:'CHAR1', text:'でも今回はちゃんとついてくから、笑わないで。', sprite:true, expr:'smile'},
+    {type:'text', name:'', text:'（内心：からかわれてるのにちょっと嬉しいの、なんでだ）', sprite:true, expr:'smile'},
+    {type:'jump', label:'class_skip'},
+  ],
+  class_skip:[
+    {type:'location', loc:'classroom'},
+    {type:'text', name:'', text:'それからしばらくして——席替えで、カイくんが一つ前の席になった。', sprite:false},
+    {type:'cg', scene:'seat_change'},
+    {type:'text', name:'CHAR1', text:'……前？ え、これ毎時間ちょっと振り向きそうになるやつじゃない？', sprite:true, expr:'surprise'},
+    {type:'text', name:'', text:'（内心：普通にうれしい。うれしいけど顔に出したら終わる）', sprite:true, expr:'smile'},
+    {type:'choice', choices:[
+      {text:'「よろしく、カイくん」', next:'seat_kind', affection:2},
+      {text:'「そんなに緊張する？」', next:'seat_tease', affection:1},
+      {text:'「後ろだとサボれないね」', next:'seat_cool', affection:-1},
+    ]},
+  ],
+  seat_kind:[
+    {type:'affection_change', delta:1},
+    {type:'text', name:'CHAR1', text:'……うん、よろしく。', sprite:true, expr:'smile'},
+    {type:'text', name:'', text:'（内心：名前呼ばれただけでちょっとだめかも）', sprite:true, expr:'smile'},
+    {type:'jump', label:'print_scene'},
+  ],
+  seat_tease:[
+    {type:'text', name:'CHAR1', text:'するだろ。こう……振り向いたらすぐ目が合いそうだし。', sprite:true, expr:'normal'},
+    {type:'text', name:'', text:'（内心：意識してるのバレそうでまずい）', sprite:true, expr:'sad'},
+    {type:'jump', label:'print_scene'},
+  ],
+  seat_cool:[
+    {type:'text', name:'CHAR1', text:'う、それは否定できない……。', sprite:true, expr:'surprise'},
+    {type:'text', name:'CHAR1', text:'でも、ノート取れてなさそうだったら助けて。', sprite:true, expr:'smile'},
+    {type:'text', name:'', text:'（内心：頼る口実できたかも）', sprite:true, expr:'smile'},
+    {type:'jump', label:'print_scene'},
+  ],
+  print_scene:[
+    {type:'text', name:'', text:'次の日。授業のはじめ、カイくんが前の席からくるりと振り向いた。', sprite:false},
+    {type:'cg', scene:'print_pass'},
+    {type:'text', name:'CHAR1', text:'これ、後ろお願い。……あ、今の言い方ちょっと変だった。', sprite:true, expr:'normal'},
+    {type:'text', name:'CHAR1', text:'前の席って、思ったより近いんだな。', sprite:true, expr:'smile'},
+    {type:'choice', choices:[
+      {text:'「はい、カイくんの分」', next:'print_kind', affection:2},
+      {text:'「ちゃんと配ってね？」', next:'print_warn', affection:-1},
+      {text:'「一枚抜いたらバレるかな」', next:'print_joke', affection:1},
+      {text:'「早く回して」', next:'print_cold', affection:-1},
+    ]},
+  ],
+  print_kind:[
+    {type:'affection_change', delta:1},
+    {type:'text', name:'CHAR1', text:'ありがと。……こういうの、地味にうれしい。', sprite:true, expr:'smile'},
+    {type:'text', name:'', text:'（内心：普通のやり取りなのに、なんでこんなに覚えてるんだろ）', sprite:true, expr:'smile'},
+    {type:'jump', label:'study_scene'},
+  ],
+  print_warn:[
+    {type:'text', name:'CHAR1', text:'わかってるって。そんな信用ない？', sprite:true, expr:'normal'},
+    {type:'text', name:'', text:'（内心：でも話しかけてもらえたのはうれしい）', sprite:true, expr:'smile'},
+    {type:'jump', label:'study_scene'},
+  ],
+  print_joke:[
+    {type:'text', name:'CHAR1', text:'やめろって。俺まで共犯にされる。', sprite:true, expr:'surprise'},
+    {type:'text', name:'', text:'（内心：ノリが合うの、ちょっと楽しい）', sprite:true, expr:'smile'},
+    {type:'jump', label:'study_scene'},
+  ],
+  print_cold:[
+    {type:'text', name:'CHAR1', text:'あ、ごめん。急かしたみたいになった。', sprite:true, expr:'sad'},
+    {type:'text', name:'', text:'（内心：距離、詰めすぎたかな……）', sprite:true, expr:'sad'},
+    {type:'jump', label:'study_scene'},
+  ],
+  study_scene:[
+    {type:'location', loc:'library'},
+    {type:'text', name:'', text:'数日後——授業中、前の席のカイくんがこっそり紙切れを回してきた。', sprite:false},
+    {type:'cg', scene:'study_note'},
+    {type:'text', name:'CHAR1', text:'（紙切れ）ねえ、今日の数学わかった？俺全然ダメだった', sprite:true, expr:'sad'},
+    {type:'choice', choices:[
+      {text:'「後で教えてあげる」', next:'study_kind', affection:2},
+      {text:'「先生に見つかるよ」', next:'study_warn', affection:-1},
+      {text:'「私も全然だった」', next:'study_fail', affection:1},
+      {text:'「自分で考えなよ」', next:'study_cold', affection:-2},
+    ]},
+  ],
+  study_kind:[
+    {type:'affection_change', delta:1},
+    {type:'text', name:'CHAR1', text:'ほんとに！？　[PLAYER]、神すぎる……', sprite:true, expr:'smile'},
+    {type:'text', name:'', text:'（内心：こんなにすんなり頼ってしまった……）', sprite:true, expr:'smile'},
+    {type:'jump', label:'forgot_item'},
+  ],
+  study_warn:[
+    {type:'text', name:'CHAR1', text:'あっ！？　ご、ごめんて……', sprite:true, expr:'surprise'},
+    {type:'text', name:'', text:'（内心：怒られた……いや怒られてないけど……）', sprite:true, expr:'sad'},
+    {type:'jump', label:'forgot_item'},
+  ],
+  study_fail:[
+    {type:'text', name:'CHAR1', text:'え、そうなの？　じゃあ一緒に落ちよ（笑）', sprite:true, expr:'smile'},
+    {type:'text', name:'', text:'（内心：共倒れになってどうするんだ）', sprite:true, expr:'smile'},
+    {type:'jump', label:'forgot_item'},
+  ],
+  study_cold:[
+    {type:'text', name:'CHAR1', text:'……それは、そう。ごめん。', sprite:true, expr:'sad'},
+    {type:'text', name:'', text:'前の席に向き直る背中が、少しだけ小さく見えた。', sprite:false},
+    {type:'jump', label:'forgot_item'},
+  ],
+  forgot_item:[
+    {type:'location', loc:'hallway'},
+    {type:'text', name:'', text:'放課後。帰ろうとしたとき、机の横に見覚えのあるノートが落ちていた。', sprite:false},
+    {type:'cg', scene:'forgotten_item'},
+    {type:'text', name:'', text:'表紙には、カイくんの名前。', sprite:false},
+    {type:'text', name:'CHAR1', text:'……あ。', sprite:true, expr:'surprise'},
+    {type:'text', name:'CHAR1', text:'それ、俺の。もしかして届けに来てくれた？', sprite:true, expr:'normal'},
+    {type:'choice', choices:[
+      {text:'「忘れ物してたよ、カイくん」', next:'forgot_kind', affection:2},
+      {text:'「危ないから気をつけて」', next:'forgot_warn', affection:-1},
+      {text:'「お礼、期待していい？」', next:'forgot_tease', affection:1},
+      {text:'「これくらい自分で気づいて」', next:'forgot_cold', affection:-1},
+    ]},
+  ],
+  forgot_kind:[
+    {type:'affection_change', delta:1},
+    {type:'text', name:'CHAR1', text:'ありがと。助かった……ほんとに。', sprite:true, expr:'smile'},
+    {type:'text', name:'CHAR1', text:'……今度から、こういうとき連絡できたほうがいいよな。', sprite:true, expr:'normal'},
+    {type:'jump', label:'line_exchange'},
+  ],
+  forgot_warn:[
+    {type:'text', name:'CHAR1', text:'う……気をつける。', sprite:true, expr:'sad'},
+    {type:'text', name:'CHAR1', text:'でも届けてくれたの、うれしかった。', sprite:true, expr:'smile'},
+    {type:'jump', label:'line_exchange'},
+  ],
+  forgot_tease:[
+    {type:'text', name:'CHAR1', text:'お礼……いる。絶対いる。', sprite:true, expr:'surprise'},
+    {type:'text', name:'CHAR1', text:'じゃあ、その……まず連絡先交換とか、どう？', sprite:true, expr:'smile'},
+    {type:'jump', label:'line_exchange'},
+  ],
+  forgot_cold:[
+    {type:'text', name:'CHAR1', text:'……ごめん。次から気をつける。', sprite:true, expr:'sad'},
+    {type:'text', name:'', text:'それでもノートを受け取る手つきだけは、妙にやさしかった。', sprite:false},
+    {type:'jump', label:'line_exchange'},
+  ],
+  line_exchange:[
+    {type:'text', name:'', text:'カイくんは少しだけ視線を泳がせて、それからスマホを差し出した。', sprite:true, expr:'normal'},
+    {type:'cg', scene:'line_exchange'},
+    {type:'text', name:'CHAR1', text:'ノートのこともあるし、勉強のこと聞きたいときもあるし……。', sprite:true, expr:'normal'},
+    {type:'text', name:'CHAR1', text:'よかったら、LINE交換しない？', sprite:true, expr:'sad'},
+    {type:'choice', choices:[
+      {text:'「うん、交換しよ」', next:'line_yes', affection:2},
+      {text:'「カイくんから言うんだ？」', next:'line_tease', affection:1},
+      {text:'「断る理由ないしね」', next:'line_cool', affection:1},
+      {text:'「今はいいかな」', next:'line_decline', affection:-2},
+    ]},
+  ],
+  line_yes:[
+    {type:'affection_change', delta:1},
+    {type:'text', name:'CHAR1', text:'……よかった。', sprite:true, expr:'smile'},
+    {type:'text', name:'', text:'（内心：やばい、普通にうれしい。しばらく画面見返しそう）', sprite:true, expr:'smile'},
+    {type:'jump', label:'summer_transit'},
+  ],
+  line_tease:[
+    {type:'text', name:'CHAR1', text:'そりゃ言うだろ……今しかないと思ったし。', sprite:true, expr:'surprise'},
+    {type:'text', name:'', text:'（内心：からかわれてるのに、断られてないだけで救われる）', sprite:true, expr:'smile'},
+    {type:'jump', label:'summer_transit'},
+  ],
+  line_cool:[
+    {type:'text', name:'CHAR1', text:'それ、かなりうれしい言い方かも。', sprite:true, expr:'smile'},
+    {type:'text', name:'', text:'交換したLINEの画面を見て、カイくんは少しだけ笑った。', sprite:true, expr:'smile'},
+    {type:'jump', label:'summer_transit'},
+  ],
+  line_decline:[
+    {type:'text', name:'CHAR1', text:'……そっか。急にごめん。', sprite:true, expr:'sad'},
+    {type:'text', name:'', text:'その日はそこで会話が終わった。\nでも、数日後——。', sprite:false},
+    {type:'jump', label:'summer_transit_direct'},
+  ],
+
+summer_transit_direct:[
+    {type:'location', loc:'hallway'},
+    {type:'text', name:'', text:'放課後、廊下で声をかけられた。', sprite:false},
+    {type:'text', name:'CHAR1', text:'あのさ、前に変なタイミングで聞いてごめん。', sprite:true, expr:'sad'},
+    {type:'text', name:'CHAR1', text:'もしよかったら、今度の夏祭り……一緒に行かない？', sprite:true, expr:'normal'},
+    {type:'choice', choices:[
+      {text:'「行くよ」', next:'summer_yes', affection:1},
+      {text:'「少しだけなら」', next:'summer_shy', affection:-1},
+      {text:'「ごめん、その日はやめておく」', next:'summer_decline', affection:-2},
+    ]},
+  ],
+
+summer_transit:[
+    {type:'location', loc:'hallway'},
+    {type:'text', name:'', text:'放課後。帰り道の途中で、スマホが震えた。\n交換したばかりのLINEには、カイくんの名前。', sprite:false},
+    {type:'cg', scene:'summer_invite'},
+    {type:'text', name:'CHAR1', text:'「今度の夏祭り、一緒に行かない？」', sprite:true, expr:'normal'},
+    {type:'text', name:'CHAR1', text:'「浴衣とかあればなおよし。……いや、私服でも全然いい」', sprite:true, expr:'sad'},
+    {type:'text', name:'', text:'しばらくして、また通知が来る。\n「やっぱ急すぎたらごめん」', sprite:false},
+    {type:'text', name:'', text:'（送ったあとに絶対あわてたんだろうな、ってわかる文面だった）', sprite:false},
+    {type:'choice', choices:[
+      {text:'「行く！浴衣も着るね」', next:'summer_yes', affection:2},
+      {text:'「いいけど、なんで私に？」', next:'summer_why', affection:1},
+      {text:'「浴衣がちょっと恥ずかしい……」', next:'summer_shy', affection:1},
+      {text:'「その日はちょっと……」', next:'summer_decline', affection:-2},
+    ]},
+  ],
+  summer_yes:[
+    {type:'affection_change', delta:1},
+    {type:'text', name:'CHAR1', text:'本当に！？　ありがとう……めっちゃ楽しみ。', sprite:true, expr:'smile'},
+    {type:'text', name:'CHAR1', text:'「その日までちゃんと生きる」', sprite:true, expr:'smile'},
+    {type:'text', name:'', text:'（内心：心臓がうるさすぎて夜眠れなかった）', sprite:true, expr:'smile'},
+    {type:'jump', label:'summer_date'},
+  ],
+  summer_why:[
+    {type:'text', name:'CHAR1', text:'えっと……その、[PLAYER]と行きたいな、って。', sprite:true, expr:'surprise'},
+    {type:'text', name:'CHAR1', text:'ほかの誰か、じゃなくて。', sprite:true, expr:'sad'},
+    {type:'text', name:'', text:'（内心：直球すぎた……やばい……でも引っ込めたくない）', sprite:true, expr:'sad'},
+    {type:'jump', label:'summer_date'},
+  ],
+  summer_shy:[
+    {type:'text', name:'CHAR1', text:'じゃあ私服でも全然いい！　来てくれるだけで……いや、その。', sprite:true, expr:'surprise'},
+    {type:'text', name:'CHAR1', text:'一緒に回れたらうれしい。', sprite:true, expr:'smile'},
+    {type:'text', name:'', text:'（内心：ほぼ言いかけた。危なかった）', sprite:true, expr:'sad'},
+    {type:'jump', label:'summer_date'},
+  ],
+  summer_decline:[
+    {type:'text', name:'CHAR1', text:'……そっか。わかった。', sprite:true, expr:'sad'},
+    {type:'text', name:'', text:'断ったはずなのに、その横顔が妙に頭に残った。', sprite:false},
+    {type:'text', name:'', text:'夏祭りの夜、少しだけ胸がざわついたまま時間が過ぎていく。\n― すれ違いの夏 ―', sprite:false},
+    {type:'jump', label:'after_summer_low'},
+  ],
+  /* ── 夏祭り当日（festival ロケーション = 浴衣衣装） ── */
+  summer_date:[
+    {type:'location', loc:'festival'},
+    {type:'text', name:'', text:'夕暮れの祭り会場。\n金魚すくいの水音、焼きとうもろこしの匂い、遠くから聞こえる祭り囃子。', sprite:false},
+    {type:'cg', scene:'festival_arrive'},
+    {type:'text', name:'', text:'人混みの向こうから、カイくんがこちらに気づいて足を止めた。', sprite:false},
+    {type:'text', name:'CHAR1', text:'……[PLAYER]。', sprite:true, expr:'surprise'},
+    {type:'text', name:'CHAR1', text:'やっぱ浴衣、すごく似合う。', sprite:true, expr:'normal'},
+    {type:'text', name:'', text:'言ったあとで、カイくんが自分の口を押さえる。\nたぶん、思ったより素直に出たんだと思う。', sprite:false},
+    {type:'text', name:'CHAR1', text:'あ、言っちゃった。', sprite:true, expr:'surprise'},
+    {type:'text', name:'', text:'（内心：完全に口が滑った、終わった……いや終わるな、今日を終わらせるな）', sprite:true, expr:'sad'},
+    {type:'cg', scene:'festival_stall'},
+    {type:'text', name:'', text:'並んで歩き出すと、肩が触れそうで触れない。\nそれだけなのに、妙に落ち着かなかった。', sprite:false},
+    {type:'choice', choices:[
+      {text:'「カイくんこそ似合ってるよ」', next:'summer_flirt', affection:2},
+      {text:'「ありがとう、照れるな」', next:'summer_shy2', affection:2},
+      {text:'「……気づくの遅い」', next:'summer_cool2', affection:1},
+      {text:'「そういうの、軽く言わないで」', next:'summer_distant', affection:-1},
+    ]},
+  ],
+  summer_flirt:[
+    {type:'affection_change', delta:2},
+    {type:'text', name:'CHAR1', text:'え……え、俺？　あ、ありがとう……耳あつい。', sprite:true, expr:'surprise'},
+    {type:'text', name:'', text:'カイくんは耳を隠すみたいに少し顔をそむける。\nでも、足取りはさっきより軽かった。', sprite:false},
+    {type:'text', name:'', text:'（本当に耳が熱いんだろうな、ってわかって、少しだけ可愛いと思った）', sprite:false},
+    {type:'jump', label:'fireworks'},
+  ],
+  summer_shy2:[
+    {type:'affection_change', delta:1},
+    {type:'text', name:'CHAR1', text:'そっか……照れてくれたなら、言ってよかった。', sprite:true, expr:'smile'},
+    {type:'text', name:'', text:'その笑い方がやわらかくて、胸の奥がくすぐったくなる。', sprite:false},
+    {type:'jump', label:'fireworks'},
+  ],
+  summer_cool2:[
+    {type:'text', name:'CHAR1', text:'気づくの遅い？　え、もっと早く言えばよかった……？', sprite:true, expr:'surprise'},
+    {type:'text', name:'', text:'立ち止まって振り返るカイくんに、心臓がひとつ大きく跳ねる。\n（言葉の意味がわからなくて三秒くらい固まった）', sprite:false},
+    {type:'jump', label:'fireworks'},
+  ],
+  summer_distant:[
+    {type:'text', name:'CHAR1', text:'……え。', sprite:true, expr:'surprise'},
+    {type:'text', name:'CHAR1', text:'ごめん。軽く言ったつもりじゃ、なかった。', sprite:true, expr:'sad'},
+    {type:'text', name:'', text:'カイくんは少しだけ目を伏せる。\nさっきまでのやわらかい空気が、ほんの少しだけ張りつめた。', sprite:false},
+    {type:'text', name:'', text:'（悪く言いたかったわけじゃない。\nでも、思っていたよりずっと、カイくんの言葉が胸に残っていた）', sprite:false},
+    {type:'jump', label:'fireworks'},
+  ],
+  /* ── 花火 ── */
+  fireworks:[
+    {type:'location', loc:'fireworks'},
+    {type:'overlay_dark', alpha:0.3},
+    {type:'cg', scene:'fireworks'},
+    {type:'text', name:'', text:'暗くなった空に、大きな花火が打ちあがった。\nどん、という音が遅れて胸の奥まで響く。', sprite:false},
+    {type:'text', name:'', text:'人のざわめきが遠くなる。\nさっきまで普通に話していたはずなのに、隣にいるカイくんがやけに近く感じた。', sprite:false},
+    {type:'text', name:'CHAR1', text:'……きれいだな。', sprite:true, expr:'normal'},
+    {type:'text', name:'', text:'カイくんは空を見上げたまま、小さく息を吐く。\n横顔に花火の光が映るたび、目を逸らす理由がわからなくなる。', sprite:true, expr:'normal'},
+    {type:'text', name:'', text:'（なんでだろう。\n　花火を見に来たはずなのに、気づくとカイくんばかり目で追ってしまう）', sprite:false},
+    {type:'text', name:'CHAR1', text:'……[PLAYER]。', sprite:true, expr:'normal'},
+    {type:'text', name:'CHAR1', text:'今、ちゃんと隣にいてくれてるの、なんかすごい安心する。', sprite:true, expr:'sad'},
+    {type:'text', name:'', text:'（内心：だめだ、これ以上しゃべったらたぶん本音が出る）', sprite:true, expr:'sad'},
+    {type:'choice', choices:[
+      {text:'「うん、きれい」と言って隣に近づく', next:'fireworks_close_check', affection:2},
+      {text:'「花火より、カイくんのほう見てたかも」', next:'fireworks_bold_check', affection:2},
+      {text:'「今日、楽しかった。ありがとう」', next:'fireworks_warm_check', affection:1},
+      {text:'少しだけ距離を取る', next:'ending_distance', affection:-1},
+    ]},
+  ],
+  fireworks_close_check:[
+    {type:'cond_jump', minAff:12, ifTrue:'ending_sweet', ifFalse:'ending_miss'},
+  ],
+  fireworks_bold_check:[
+    {type:'cond_jump', minAff:12, ifTrue:'ending_bold', ifFalse:'ending_miss'},
+  ],
+  fireworks_warm_check:[
+    {type:'cond_jump', minAff:6, ifTrue:'ending_warm', ifFalse:'ending_distance'},
+  ],
+  ending_sweet:[
+    {type:'affection_change', delta:2},
+    {type:'text', name:'CHAR1', text:'……え。近い。', sprite:true, expr:'surprise'},
+    {type:'text', name:'', text:'少しだけ肩が触れそうな距離。\n逃げようと思えば逃げられるのに、どちらも動けない。', sprite:false},
+    {type:'text', name:'CHAR1', text:'……でも、逃げない。', sprite:true, expr:'smile'},
+    {type:'text', name:'', text:'（内心：今ここで離れたら、一生後悔する気がした）', sprite:true, expr:'smile'},
+    {type:'cg', scene:'handhold'},
+    {type:'text', name:'', text:'次の花火が夜空で開くのと同時に、カイくんがそっと手を握った。\n指先が触れた瞬間、心臓が大きく跳ねる。', sprite:true, expr:'smile'},
+    {type:'text', name:'CHAR1', text:'……あったかい。', sprite:true, expr:'smile'},
+    {type:'text', name:'', text:'（もう、花火の音すらちゃんと聞こえない）', sprite:false},
+    {type:'overlay_clear'},
+    {type:'jump', label:'after_summer'},
+  ],
+  ending_bold:[
+    {type:'affection_change', delta:2},
+    {type:'text', name:'CHAR1', text:'…………は？', sprite:true, expr:'surprise'},
+    {type:'text', name:'', text:'言った瞬間、自分でも顔が熱くなる。\nでも、もう誤魔化せなかった。', sprite:false},
+    {type:'cg', scene:'ending_bold'},
+    {type:'text', name:'CHAR1', text:'それ、反則じゃん……。', sprite:true, expr:'smile'},
+    {type:'text', name:'CHAR1', text:'そんなこと言われたら、もう花火どころじゃない。', sprite:true, expr:'surprise'},
+    {type:'text', name:'', text:'カイくんの耳がみるみる赤くなる。\nそれでも目だけは、逸らさなかった。', sprite:true, expr:'smile'},
+    {type:'jump', label:'after_summer'},
+  ],
+  ending_warm:[
+    {type:'affection_change', delta:1},
+    {type:'text', name:'CHAR1', text:'……こちらこそ。来てくれてよかった。', sprite:true, expr:'smile'},
+    {type:'text', name:'', text:'少し間を置いて、カイくんが小さく笑う。\nその表情だけで、今日来てよかったと思えた。', sprite:false},
+    {type:'text', name:'CHAR1', text:'また、こういうふうに一緒に出かけたい。……だめ？', sprite:true, expr:'sad'},
+    {type:'text', name:'', text:'夏の夜風が二人のあいだをすり抜ける。\n返事を急かさないその声が、やけにやさしかった。', sprite:false},
+    {type:'jump', label:'after_summer'},
+  ],
+  ending_miss:[
+    {type:'text', name:'', text:'言葉にした瞬間、空気が少しだけ止まった。', sprite:false},
+    {type:'text', name:'CHAR1', text:'……ごめん。うれしい、はずなんだけど……今の俺、ちゃんと受け止めきれない。', sprite:true, expr:'sad'},
+    {type:'text', name:'', text:'花火の音が、やけに遠く聞こえる。\n恋になりきるには、まだ少しだけ距離があった。', sprite:false},
+    {type:'jump', label:'after_summer_low'},
+  ],
+  ending_distance:[
+    {type:'text', name:'', text:'肩が触れないように、少しだけ立つ位置をずらす。', sprite:false},
+    {type:'text', name:'CHAR1', text:'……そっか。', sprite:true, expr:'sad'},
+    {type:'text', name:'', text:'楽しい夜だったはずなのに、帰り道の風だけがやけに冷たかった。', sprite:false},
+    {type:'jump', label:'after_summer_low'},
+  ],
+
+  /* ════════════════════════════════
+     第3章：夏の終わり・距離が縮まる
+  ════════════════════════════════ */
+  after_summer_low:[
+    {type:'location', loc:'hallway'},
+    {type:'overlay_clear'},
+    {type:'text', name:'', text:'夏祭りのあと。\n廊下で見かけても、前みたいに自然には話せなくなっていた。', sprite:false},
+    {type:'text', name:'CHAR1', text:'……おはよ。', sprite:true, expr:'sad'},
+    {type:'text', name:'', text:'少しだけ間を空けて交わす挨拶が、今の距離そのものみたいだった。', sprite:false},
+    {type:'jump', label:'after_summer'},
+  ],
+  after_summer:[
+    {type:'location', loc:'hallway'},
+    {type:'overlay_clear'},
+    {type:'text', name:'', text:'夏祭りから数日後。\n廊下でカイと目が合うたびに、少し気まずくなった。', sprite:false},
+    {type:'cg', scene:'after_festival'},
+    {type:'text', name:'CHAR1', text:'あ……おはよ。', sprite:true, expr:'normal'},
+    {type:'text', name:'', text:'（内心：なんか前より話しかけにくい……なんで？）', sprite:true, expr:'sad'},
+    {type:'choice', choices:[
+      {text:'「おはよう！　元気だった？」', next:'after_bright', affection:2},
+      {text:'「……おはよ」と短く返す', next:'after_quiet', affection:1},
+      {text:'「あの夜のこと、考えてた」', next:'after_bold', affection:-1},
+    ]},
+  ],
+  after_bright:[
+    {type:'affection_change', delta:1},
+    {type:'text', name:'CHAR1', text:'え、う、うん！　普通だよ！　なんで急にそんな元気なの！？', sprite:true, expr:'surprise'},
+    {type:'text', name:'', text:'（内心：テンション高いの釣られそう　やばい）', sprite:true, expr:'smile'},
+    {type:'jump', label:'rooftop_invite'},
+  ],
+  after_quiet:[
+    {type:'text', name:'CHAR1', text:'……そっか。', sprite:true, expr:'sad'},
+    {type:'text', name:'', text:'（内心：なんかよそよそしい……俺なんかした？）', sprite:true, expr:'sad'},
+    {type:'jump', label:'rooftop_invite'},
+  ],
+  after_bold:[
+    {type:'affection_change', delta:2},
+    {type:'text', name:'CHAR1', text:'え……っ！？　どどど、どんなこと考えてたの！？', sprite:true, expr:'surprise'},
+    {type:'text', name:'', text:'（内心：心臓がうるさい　廊下で死ぬかと思った）', sprite:true, expr:'surprise'},
+    {type:'jump', label:'rooftop_invite'},
+  ],
+
+  /* ── 屋上への誘い ── */
+  rooftop_invite:[
+    {type:'location', loc:'hallway'},
+    {type:'text', name:'CHAR1', text:'……ねえ、昼休み、屋上来れる？', sprite:true, expr:'normal'},
+    {type:'cg', scene:'rooftop_invite'},
+    {type:'text', name:'CHAR1', text:'二人で話したいことがあって。', sprite:true, expr:'normal'},
+    {type:'text', name:'', text:'（内心：勇気ふりしぼった　頼む断らないで）', sprite:true, expr:'sad'},
+    {type:'choice', choices:[
+      {text:'「うん、行くよ」', next:'rooftop_yes', affection:2},
+      {text:'「どんな話？」と聞く', next:'rooftop_ask', affection:1},
+      {text:'「二人きりで？」とからかう', next:'rooftop_tease', affection:-1},
+    ]},
+  ],
+  rooftop_yes:[
+    {type:'affection_change', delta:1},
+    {type:'text', name:'CHAR1', text:'……よかった。じゃあ昼に。', sprite:true, expr:'smile'},
+    {type:'text', name:'', text:'（内心：手、震えてる　バレてないといいけど）', sprite:true, expr:'smile'},
+    {type:'jump', label:'rooftop_scene'},
+  ],
+  rooftop_ask:[
+    {type:'text', name:'CHAR1', text:'それは……行ってからのお楽しみ、ってことで。', sprite:true, expr:'normal'},
+    {type:'text', name:'', text:'（内心：めちゃくちゃ緊張してるのに格好つけてしまった）', sprite:true, expr:'smile'},
+    {type:'jump', label:'rooftop_scene'},
+  ],
+  rooftop_tease:[
+    {type:'text', name:'CHAR1', text:'な、当たり前だろ！？　……あ、嫌だった？', sprite:true, expr:'surprise'},
+    {type:'text', name:'', text:'（内心：からかわれた……でも嫌な気しない　どういうこと）', sprite:true, expr:'sad'},
+    {type:'jump', label:'rooftop_scene'},
+  ],
+
+  /* ── 屋上シーン ── */
+  rooftop_scene:[
+    {type:'location', loc:'rooftop_day'},
+    {type:'cg', scene:'rooftop'},
+    {type:'cg', scene:'rooftop_close'},
+    {type:'text', name:'', text:'昼休み、屋上。\n青い空と遠くの山が見渡せる、静かな場所。', sprite:false},
+    {type:'text', name:'CHAR1', text:'……えっと。', sprite:true, expr:'normal'},
+    {type:'text', name:'CHAR1', text:'夏祭りのこと。楽しかったって、ちゃんと言えてなかったから。', sprite:true, expr:'smile'},
+    {type:'text', name:'', text:'（内心：言いたかったのはそれだけじゃないけど、まだ言えない）', sprite:true, expr:'smile'},
+    {type:'choice', choices:[
+      {text:'「私も楽しかったよ」', next:'rooftop_happy', affection:2},
+      {text:'「……また行こうよ、来年も」', next:'rooftop_future', affection:3},
+      {text:'「カイくんが誘ってくれたから」', next:'rooftop_credit', affection:-1},
+    ]},
+  ],
+  rooftop_happy:[
+    {type:'affection_change', delta:1},
+    {type:'text', name:'CHAR1', text:'そっか……よかった。', sprite:true, expr:'smile'},
+    {type:'text', name:'', text:'風がふわりと髪をなでた。\n二人の間に、やわらかい沈黙が流れる。', sprite:true, expr:'smile'},
+    {type:'jump', label:'rooftop_ending'},
+  ],
+  rooftop_future:[
+    {type:'affection_change', delta:2},
+    {type:'text', name:'CHAR1', text:'来年も……？　それって、俺と一緒にまた行くってこと？', sprite:true, expr:'surprise'},
+    {type:'text', name:'PLAYER', text:'「そういう意味だけど？」', sprite:false},
+    {type:'text', name:'CHAR1', text:'……っ。', sprite:true, expr:'surprise'},
+    {type:'text', name:'', text:'（内心：一生ここにいたい）', sprite:true, expr:'smile'},
+    {type:'jump', label:'rooftop_ending'},
+  ],
+  rooftop_credit:[
+    {type:'affection_change', delta:1},
+    {type:'text', name:'CHAR1', text:'俺が誘ったから……そっか。', sprite:true, expr:'normal'},
+    {type:'text', name:'CHAR1', text:'また誘っていい……かな。', sprite:true, expr:'normal'},
+    {type:'text', name:'', text:'（内心：おそるおそる聞いた　断られたら立ち直れない）', sprite:true, expr:'sad'},
+    {type:'jump', label:'rooftop_ending'},
+  ],
+  rooftop_ending:[
+    {type:'location', loc:'rooftop_day'},
+    {type:'text', name:'', text:'チャイムが鳴った。', sprite:true, expr:'smile'},
+    {type:'text', name:'CHAR1', text:'……[PLAYER]。', sprite:true, expr:'normal'},
+    {type:'text', name:'CHAR1', text:'俺、ちゃんと伝えたいことがあるんだけど。', sprite:true, expr:'normal'},
+    {type:'text', name:'', text:'（内心：今じゃない　もっとちゃんとした場所で言いたい）', sprite:true, expr:'sad'},
+    {type:'choice', choices:[
+      {text:'「聞かせて」とその場で聞く', next:'ch3_listen', affection:2},
+      {text:'「……いつでも待ってるよ」', next:'ch3_wait', affection:3},
+      {text:'「なんか怖いな」と笑う', next:'ch3_laugh', affection:-1},
+    ]},
+  ],
+  ch3_listen:[
+    {type:'text', name:'CHAR1', text:'え、今？　ここで？', sprite:true, expr:'surprise'},
+    {type:'text', name:'CHAR1', text:'……ま、まだ準備できてない！！', sprite:true, expr:'surprise'},
+    {type:'text', name:'', text:'（内心：心の準備が全然足りなかった）', sprite:true, expr:'sad'},
+    {type:'jump', label:'after_rooftop'},
+  ],
+  ch3_wait:[
+    {type:'affection_change', delta:2},
+    {type:'text', name:'CHAR1', text:'……待ってくれるの。', sprite:true, expr:'normal'},
+    {type:'text', name:'CHAR1', text:'ありがと。絶対、ちゃんと言う。', sprite:true, expr:'smile'},
+    {type:'text', name:'', text:'（内心：この人が好きだ　間違いない）', sprite:true, expr:'smile'},
+    {type:'jump', label:'after_rooftop'},
+  ],
+  ch3_laugh:[
+    {type:'text', name:'CHAR1', text:'怖くない！　怖くないから！', sprite:true, expr:'surprise'},
+    {type:'text', name:'', text:'（内心：笑ってもらえた　緊張が少し解けた）', sprite:true, expr:'smile'},
+    {type:'jump', label:'after_rooftop'},
+  ],
+
+  /* ════════════════════════════════
+     屋上の後〜告白まで：日常の積み重ね
+  ════════════════════════════════ */
+
+  /* ── エピソード①：一緒に帰る ── */
+  after_rooftop:[
+    {type:'location', loc:'hallway'},
+    {type:'text', name:'', text:'屋上から教室へ戻る廊下。\nチャイムはもう聞こえなくなっていた。', sprite:false},
+    {type:'text', name:'CHAR1', text:'……同じ方向だよな、帰り。', sprite:true, expr:'normal'},
+    {type:'text', name:'', text:'（内心：前から知ってたくせに、今さら確かめるように言った）', sprite:true, expr:'sad'},
+    {type:'choice', choices:[
+      {text:'「一緒に帰ろうよ」', next:'walk_home_yes', affection:2},
+      {text:'「今日はちょっと……」', next:'walk_home_no', affection:-1},
+      {text:'「待っててくれるの？」とからかう', next:'walk_home_tease', affection:-1},
+    ]},
+  ],
+  walk_home_yes:[
+    {type:'affection_change', delta:1},
+    {type:'cg', scene:'walk_home'},
+    {type:'text', name:'CHAR1', text:'……じゃあ、下で待ってる。', sprite:true, expr:'smile'},
+    {type:'text', name:'', text:'（内心：返事が来るまでの2秒が長すぎた）', sprite:true, expr:'smile'},
+    {type:'text', name:'', text:'昇降口を出ると、夕方の風が少し涼しかった。\n隣に人がいることで、帰り道がいつもより短く感じる。', sprite:false},
+    {type:'text', name:'CHAR1', text:'……なんかさ、一緒に帰るの初めてじゃないのに、なんか変な感じ。', sprite:true, expr:'normal'},
+    {type:'text', name:'', text:'（内心：今日に限ってなんで正直に言ってるんだ自分）', sprite:true, expr:'surprise'},
+    {type:'jump', label:'line_night'},
+  ],
+  walk_home_no:[
+    {type:'text', name:'CHAR1', text:'……そっか。', sprite:true, expr:'sad'},
+    {type:'text', name:'', text:'短い返事。それ以上は何も言わない。\nでも、背中が少しだけ小さく見えた。', sprite:false},
+    {type:'text', name:'', text:'（内心：かすかに後悔してる）', sprite:false},
+    {type:'jump', label:'line_night'},
+  ],
+  walk_home_tease:[
+    {type:'text', name:'CHAR1', text:'べ、別に待ってるとかじゃなくて……', sprite:true, expr:'surprise'},
+    {type:'text', name:'', text:'（内心：完全に待ってた）', sprite:true, expr:'surprise'},
+    {type:'text', name:'', text:'二人で笑いながら昇降口へ向かう。\nこういう何でもない瞬間が、妙に心地よかった。', sprite:false},
+    {type:'jump', label:'line_night'},
+  ],
+
+  /* ── エピソード②：夜のLINE ── */
+  line_night:[
+    {type:'location', loc:'bedroom'},
+    {type:'text', name:'', text:'その夜、遅い時間にLINEが来た。', sprite:false},
+    {type:'text', name:'CHAR1', text:'「今日帰り、楽しかったな」', sprite:true, expr:'smile'},
+    {type:'text', name:'CHAR1', text:'「また明日」', sprite:true, expr:'smile'},
+    {type:'text', name:'', text:'（内心：既読してから5分後にもう一通来た）', sprite:false},
+    {type:'text', name:'CHAR1', text:'「あ、急に送ってごめん」', sprite:true, expr:'surprise'},
+    {type:'text', name:'', text:'（内心：かわいいな、と思ってしまった）', sprite:false},
+    {type:'choice', choices:[
+      {text:'「私も楽しかったよ」と返す', next:'line_reply_warm', affection:2},
+      {text:'「気にしないで」と返す', next:'line_reply_cool', affection:1},
+      {text:'スタンプだけ送る', next:'line_reply_stamp', affection:-1},
+    ]},
+  ],
+  line_reply_warm:[
+    {type:'affection_change', delta:1},
+    {type:'text', name:'CHAR1', text:'「……よかった」', sprite:true, expr:'smile'},
+    {type:'text', name:'', text:'それだけ。でもスマホ越しに伝わってくるものがあった。\n画面を閉じてから、少しの間ぼうっとしてしまう。', sprite:false},
+    {type:'jump', label:'after_school_study'},
+  ],
+  line_reply_cool:[
+    {type:'text', name:'CHAR1', text:'「そっか　じゃあよかった」', sprite:true, expr:'normal'},
+    {type:'text', name:'', text:'やりとりはそこで終わった。\n短いけれど、確かにつながった夜だった。', sprite:false},
+    {type:'jump', label:'after_school_study'},
+  ],
+  line_reply_stamp:[
+    {type:'text', name:'CHAR1', text:'「なにそのスタンプ　かわいい」', sprite:true, expr:'smile'},
+    {type:'text', name:'CHAR1', text:'「おやすみ」', sprite:true, expr:'smile'},
+    {type:'text', name:'', text:'（内心：「かわいい」の対象が自分なのかスタンプなのかわからなくて、\n30分くらい考えてしまった）', sprite:false},
+    {type:'jump', label:'after_school_study'},
+  ],
+
+  /* ── エピソード③：放課後の勉強 ── */
+  after_school_study:[
+    {type:'location', loc:'library'},
+    {type:'text', name:'', text:'数日後の放課後。\n図書室で課題をやっていると、隣の椅子が引かれた。', sprite:false},
+    {type:'text', name:'CHAR1', text:'……隣、いい？', sprite:true, expr:'normal'},
+    {type:'text', name:'', text:'（内心：聞いてから気づいた。もう座ってる）', sprite:true, expr:'surprise'},
+    {type:'text', name:'', text:'静かな図書室で二人並んでノートを広げる。\nすぐ近くにいるのに、お互い何も言わない時間が続いた。', sprite:false},
+    {type:'text', name:'CHAR1', text:'……これ、わかんないんだけど。', sprite:true, expr:'sad'},
+    {type:'choice', choices:[
+      {text:'「一緒にやってみよう」', next:'study2_together', affection:2},
+      {text:'「教科書見てみて」とヒントだけ出す', next:'study2_hint', affection:1},
+      {text:'「私もわかんない」', next:'study2_fail', affection:-1},
+    ]},
+  ],
+  study2_together:[
+    {type:'affection_change', delta:1},
+    {type:'text', name:'CHAR1', text:'……いや待って、これ解けるじゃん。', sprite:true, expr:'surprise'},
+    {type:'text', name:'', text:'隣で一緒に考えていたら、気づいたら肩がくっつきそうな距離になっていた。\nカイくんは気にしていない様子だったが、こっちは全然集中できない。', sprite:false},
+    {type:'text', name:'CHAR1', text:'……なんか、こういうの悪くないな。', sprite:true, expr:'smile'},
+    {type:'text', name:'', text:'（内心：何が？　って聞いたら答えてくれるのかな）', sprite:false},
+    {type:'jump', label:'rainy_day'},
+  ],
+  study2_hint:[
+    {type:'text', name:'CHAR1', text:'……あ。そっか。', sprite:true, expr:'normal'},
+    {type:'text', name:'', text:'しばらく黙って問題と向き合っていた。\nふと顔を上げたカイくんと目が合う。', sprite:false},
+    {type:'text', name:'CHAR1', text:'……ありがと。', sprite:true, expr:'smile'},
+    {type:'text', name:'', text:'教えてもらったのに、なぜか照れくさい気持ちになる。', sprite:false},
+    {type:'jump', label:'rainy_day'},
+  ],
+  study2_fail:[
+    {type:'text', name:'CHAR1', text:'え、じゃあ共倒れ？', sprite:true, expr:'surprise'},
+    {type:'text', name:'CHAR1', text:'……待って笑えない、試験前なのに。', sprite:true, expr:'surprise'},
+    {type:'text', name:'', text:'二人で顔を見合わせて、声を出さずに笑う。\n図書室だから静かに笑うしかなくて、それがかえって楽しかった。', sprite:false},
+    {type:'jump', label:'rainy_day'},
+  ],
+
+  /* ── エピソード④：雨の日 ── */
+  rainy_day:[
+    {type:'location', loc:'rainy_street'},
+    {type:'text', name:'', text:'放課後、外を見たら雨が降っていた。\n傘を忘れた。', sprite:false},
+    {type:'text', name:'CHAR1', text:'あ、傘ない？', sprite:true, expr:'normal'},
+    {type:'text', name:'', text:'（内心：なんで気づくんだ）', sprite:false},
+    {type:'text', name:'CHAR1', text:'……一緒に入る？', sprite:true, expr:'normal'},
+    {type:'text', name:'', text:'（内心：さらっと言うな）', sprite:false},
+    {type:'choice', choices:[
+      {text:'「いいの？　ありがとう」', next:'rain_yes', affection:2},
+      {text:'「大丈夫、走って帰る」', next:'rain_no', affection:-1},
+      {text:'「狭くない？」と確認する', next:'rain_check', affection:-1},
+    ]},
+  ],
+  rain_yes:[
+    {type:'affection_change', delta:2},
+    {type:'cg', scene:'rainy_umbrella'},
+    {type:'text', name:'CHAR1', text:'……傘、小さいけど。', sprite:true, expr:'smile'},
+    {type:'text', name:'', text:'並んで歩くと、肩が触れそうになる。\n雨音が周りをやさしく遮断して、二人だけの時間みたいだった。', sprite:false},
+    {type:'text', name:'CHAR1', text:'……俺さ。', sprite:true, expr:'normal'},
+    {type:'text', name:'', text:'言いかけて、止まった。\n代わりに傘を少しだけこちら側に傾ける。', sprite:false},
+    {type:'text', name:'', text:'（内心：この人はいつも言いかけて止まる。\n続きが気になって仕方ない）', sprite:false},
+    {type:'jump', label:'ch4_start'},
+  ],
+  rain_no:[
+    {type:'text', name:'CHAR1', text:'……ばか。風邪ひくだろ。', sprite:true, expr:'sad'},
+    {type:'text', name:'', text:'そう言ってから、無言で傘を差し出してくる。', sprite:false},
+    {type:'text', name:'CHAR1', text:'俺は走って帰るから。', sprite:true, expr:'normal'},
+    {type:'text', name:'', text:'（内心：自分が濡れる選択を一瞬も迷わずした）', sprite:false},
+    {type:'text', name:'', text:'受け取った傘の温かさが、なぜかずっと残っていた。', sprite:false},
+    {type:'jump', label:'ch4_start'},
+  ],
+  rain_check:[
+    {type:'text', name:'CHAR1', text:'狭いけど……嫌だった？', sprite:true, expr:'surprise'},
+    {type:'text', name:'', text:'少しだけ不安そうな顔をしていた。\nその表情に、つい「嫌じゃない」と言いたくなる。', sprite:false},
+    {type:'text', name:'', text:'狭い傘の下で、雨に濡れないように身を寄せる。\n心臓の音が、雨音に混ざって聞こえそうだった。', sprite:false},
+    {type:'jump', label:'ch4_start'},
+  ],
+
+  /* ════════════════════════════════
+     第4章：告白
+  ════════════════════════════════ */
+  ch4_start:[
+    {type:'location', loc:'street_evening'},
+    {type:'text', name:'', text:'放課後。\n人気のない屋上のベンチに、二人で並んで座っていた。', sprite:false},
+    {type:'text', name:'CHAR1', text:'……言うって決めてたんだけど。', sprite:true, expr:'normal'},
+    {type:'text', name:'CHAR1', text:'いざなると、なんか、うまく出てこない。', sprite:true, expr:'sad'},
+    {type:'text', name:'', text:'（内心：練習したのに　全部飛んだ）', sprite:true, expr:'sad'},
+    {type:'choice', choices:[
+      {text:'「急がなくていいよ」', next:'confession_gentle', affection:2},
+      {text:'「私も言いたいことある」と先に話す', next:'confession_player', affection:3},
+      {text:'「……もしかして、好きって言いたい？」', next:'confession_guess', affection:-1},
+    ]},
+  ],
+  confession_gentle:[
+    {type:'affection_change', delta:1},
+    {type:'text', name:'CHAR1', text:'……急がなくていい、か。', sprite:true, expr:'normal'},
+    {type:'text', name:'CHAR1', text:'じゃあ、ゆっくり言う。', sprite:true, expr:'smile'},
+    {type:'jump', label:'confession_main'},
+  ],
+  confession_player:[
+    {type:'affection_change', delta:2},
+    {type:'text', name:'CHAR1', text:'え、[PLAYER]が？', sprite:true, expr:'surprise'},
+    {type:'text', name:'PLAYER', text:'「カイくんのこと、ずっと気になってた」', sprite:false},
+    {type:'text', name:'CHAR1', text:'……っ。', sprite:true, expr:'surprise'},
+    {type:'text', name:'', text:'（内心：先に言われた　でも嬉しい　すごく嬉しい）', sprite:true, expr:'smile'},
+    {type:'jump', label:'confession_mutual'},
+  ],
+  confession_guess:[
+    {type:'affection_change', delta:1},
+    {type:'text', name:'CHAR1', text:'……バレてた？', sprite:true, expr:'surprise'},
+    {type:'text', name:'CHAR1', text:'そう、だよ。[PLAYER]のこと、好き。', sprite:true, expr:'normal'},
+    {type:'jump', label:'confession_response'},
+  ],
+  confession_main:[
+    {type:'cg', scene:'confession'},
+    {type:'text', name:'CHAR1', text:'……[PLAYER]。', sprite:true, expr:'normal'},
+    {type:'text', name:'CHAR1', text:'俺、あなたのことが好きです。', sprite:true, expr:'normal'},
+    {type:'text', name:'', text:'（内心：言えた　やっと言えた）', sprite:true, expr:'smile'},
+    {type:'jump', label:'confession_response'},
+  ],
+  confession_response:[
+    {type:'text', name:'', text:'風が木の葉を揺らした。\n夕焼けがベンチを橙色に染める。', sprite:false},
+    {type:'cg', scene:'confession_answer'},
+    {type:'choice', choices:[
+      {text:'「私も……好きだよ」', next:'confession_yes_check', affection:2},
+      {text:'「……もう少し、考えさせて」', next:'confession_wait', affection:-1},
+      {text:'「ごめん、まだそこまでは……」', next:'confession_no', affection:-2},
+      {text:'「なんで急に？　意味わかんない」', next:'confession_fight', affection:-4},
+    ]},
+  ],
+  confession_yes_check:[
+    {type:'cond_jump', minAff:24, ifTrue:'confession_yes', ifFalse:'confession_unsure'},
+  ],
+  confession_mutual:[
+    {type:'text', name:'CHAR1', text:'俺も、[PLAYER]のこと好きだよ。', sprite:true, expr:'smile'},
+    {type:'text', name:'CHAR1', text:'ずっと言いたかった。', sprite:true, expr:'smile'},
+    {type:'text', name:'', text:'（内心：やっと言えた　やっと伝わった）', sprite:true, expr:'smile'},
+    {type:'jump', label:'final_ending'},
+  ],
+  confession_yes:[
+    {type:'affection_change', delta:3},
+    {type:'text', name:'CHAR1', text:'……ほんとに？', sprite:true, expr:'surprise'},
+    {type:'text', name:'CHAR1', text:'やった……！　あ、やったとか言ってない！', sprite:true, expr:'surprise'},
+    {type:'text', name:'', text:'（内心：嬉しすぎて頭が真っ白になった）', sprite:true, expr:'smile'},
+    {type:'jump', label:'final_ending'},
+  ],
+  confession_wait:[
+    {type:'set_flag', key:'loveFlag', value:false},
+    {type:'text', name:'CHAR1', text:'……うん。待つ。', sprite:true, expr:'sad'},
+    {type:'text', name:'', text:'（内心：ちゃんと待てる　この人のためなら）', sprite:true, expr:'normal'},
+    {type:'text', name:'', text:'二人の関係は、ゆっくりと動き始めた。', sprite:false},
+    {type:'jump', label:'after_confession'},
+  ],
+  confession_unsure:[
+    {type:'set_flag', key:'loveFlag', value:false},
+    {type:'text', name:'CHAR1', text:'……ありがとう。', sprite:true, expr:'smile'},
+    {type:'text', name:'', text:'うれしそうに笑ったのに、その目の奥には少しだけ迷いが残っていた。', sprite:false},
+    {type:'text', name:'', text:'好きという言葉は同じでも、重さが揃うにはもう少し時間が必要だった。', sprite:false},
+    {type:'jump', label:'after_confession'},
+  ],
+  confession_no:[
+    {type:'set_flag', key:'loveFlag', value:false},
+    {type:'text', name:'CHAR1', text:'……そっか。言わせてくれてありがと。', sprite:true, expr:'sad'},
+    {type:'text', name:'', text:'断ったあとも、夕焼けの色だけがやけにやさしかった。', sprite:false},
+    {type:'jump', label:'after_confession'},
+  ],
+  confession_fight:[
+    {type:'affection_change', delta:-2},
+    {type:'text', name:'CHAR1', text:'……なんで急に、って。', sprite:true, expr:'surprise'},
+    {type:'text', name:'CHAR1', text:'俺、ずっと……ずっとそのつもりで、ここまで来たんだけど。', sprite:true, expr:'sad'},
+    {type:'text', name:'', text:'声が低い。怒っているというより、傷ついている。', sprite:false},
+    {type:'text', name:'PLAYER', text:'「そういう意味じゃなくて——」', sprite:false},
+    {type:'text', name:'CHAR1', text:'いや、いい。わかった。', sprite:true, expr:'sad'},
+    {type:'text', name:'', text:'カイくんは立ち上がって、そのまま歩いていった。\n呼び止める声が、出なかった。', sprite:false},
+    {type:'choice', choices:[
+      {text:'追いかけて謝る', next:'fight_apology', affection:2},
+      {text:'その場で立ち尽くす', next:'fight_apart', affection:-1},
+    ]},
+  ],
+  fight_apology:[
+    {type:'affection_change', delta:1},
+    {type:'text', name:'CHAR1', text:'……なんで追いかけてくるの。', sprite:true, expr:'sad'},
+    {type:'text', name:'PLAYER', text:'「ごめん。言い方、悪かった」', sprite:false},
+    {type:'text', name:'', text:'長い沈黙の後、カイくんが小さく息を吐いた。', sprite:false},
+    {type:'text', name:'CHAR1', text:'……俺も、言い過ぎた。\nちょっと、頭冷やさせて。', sprite:true, expr:'normal'},
+    {type:'text', name:'', text:'喧嘩した日の帰り道は、いつもより長く感じた。\nでも、追いかけた分だけ、まだ終わっていない。', sprite:false},
+    {type:'jump', label:'after_confession'},
+  ],
+  fight_apart:[
+    {type:'set_flag', key:'loveFlag', value:false},
+    {type:'text', name:'', text:'カイくんの背中が小さくなっていく。', sprite:false},
+    {type:'text', name:'', text:'引き止めなかった。\n引き止める言葉が、見つからなかった。', sprite:false},
+    {type:'text', name:'', text:'その日から、二人の間に透明な壁ができた。\n\n🖤 喧嘩 END', sprite:false},
+  ],
+  final_ending:[
+    {type:'set_flag', key:'loveFlag', value:true},
+    {type:'cg', scene:'ending_sweet'},
+    {type:'text', name:'', text:'夕焼けの中、二人は並んで歩きはじめた。', sprite:true, expr:'smile'},
+    {type:'text', name:'CHAR1', text:'……帰り道、遠回りしてもいい？', sprite:true, expr:'smile'},
+    {type:'text', name:'PLAYER', text:'「……うん、いいよ」', sprite:false},
+    {type:'text', name:'', text:'手と手が、そっと触れた。', sprite:false},
+    {type:'jump', label:'after_confession'},
+  ],
+};
+
+/* ═══════════════════════════════════════════════════════════════
+   ENGINE
+═══════════════════════════════════════════════════════════════ */
+const G = {
+  label:'start', index:0,
+  playerName:'主人公', char1Name:'カイ', gameTitle:'カイくん恋愛ゲーム',
+  affection:8, maxAff:40,
+  loveFlag:false,
+  currentLoc:'classroom',
+  currentScene:'start',
+  isTyping:false, textDone:false,
+  autoMode:false, autoTimer:null,
+  textSpeed:5, bgmVol:.7, seVol:.8,
+  bgmUrl:null, seUrl:null, choiceSeUrl:null, nextSeUrl:null,
+  history:[],
+};
+let saves=Array(6).fill(null), loadCtx='game';
+let typeTimer=null, bgmAudio=null;
+
+function showScr(id){document.querySelectorAll('.screen').forEach(s=>s.classList.add('hidden'));document.getElementById(id).classList.remove('hidden');}
+function cm(id){document.getElementById(id).classList.add('hidden');}
+
+/* Petals */
+(function(){
+  const c=document.getElementById('petals');
+  for(let i=0;i<28;i++){const p=document.createElement('div');p.className='petal';p.textContent=['🌸','🌺','💮','🌹'][i%4];p.style.left=Math.random()*100+'%';p.style.top=Math.random()*20+'%';p.style.setProperty('--d',(6+Math.random()*7)+'s');p.style.setProperty('--dl',(Math.random()*9)+'s');c.appendChild(p);}
+})();
+
+/* Name screen */
+function goName(){showScr('name-screen');document.getElementById('pni').value='';document.getElementById('nc').textContent=0;}
+function confirmName(){const v=document.getElementById('pni').value.trim();G.playerName=v||'主人公';savePersistentData();startGame();}
+function skipName(){G.playerName='主人公';savePersistentData();startGame();}
+
+/* Start */
+function moveToLabel(label){
+  G.label=label;
+  G.currentScene=label;
+  G.index=0;
+  updateLocBadge();
+  applyBgForCurrentScene();
+  advance();
+}
+
+function startGame(){
+  showScr('game-screen');
+  G.label='start';G.currentScene='start';G.index=0;G.history=[];G.affection=8;
+  G.isTyping=false;G.textDone=false;G.autoMode=false;
+  clearTimeout(typeTimer);clearTimeout(G.autoTimer);
+  document.getElementById('auto-btn').classList.remove('active');
+  document.getElementById('auto-corner').classList.remove('show');
+  renderHearts();savePersistentData();advance();
+}
+function goTitle(){
+  stopBgm();clearTimeout(typeTimer);clearTimeout(G.autoTimer);
+  G.isTyping=false;G.textDone=false;G.autoMode=false;
+  document.getElementById('ch-wrap').classList.add('hidden');
+  document.getElementById('sprite-wrap').classList.add('hidden');
+  document.getElementById('loc-badge').textContent='';
+  document.getElementById('bg-overlay').style.background='rgba(0,0,0,0)';
+  savePersistentData();
+  showScr('title-screen');
+}
+
+/* ── Engine ── */
+function advance(){
+  const sc=SCENARIO[G.label]||[];
+  if(G.index>=sc.length)return;
+  processStep(sc[G.index]);
+}
+function processStep(s){
+  switch(s.type){
+    case'text':             showText(s); break;
+    case'choice':           showChoices(s); break;
+    case'jump':             moveToLabel(s.label); break;
+    case'location':         setLocation(s.loc);G.index++;advance(); break;
+    case'bgm_play':         playSceneBgm();G.index++;advance(); break;
+    case'bgm_stop':         stopBgm();G.index++;advance(); break;
+    case'affection_change': changeAff(s.delta);G.index++;advance(); break;
+    case'set_flag':         G[s.key]=s.value; G.index++; advance(); break;
+    case'branch':           moveToLabel(G[s.cond] ? s.ifTrue : s.ifFalse); break;
+    case'cond_jump':        moveToLabel(G.affection >= (s.minAff||0) ? s.ifTrue : s.ifFalse); break;
+    case'cg':               showCG(s.scene); break;
+    case'overlay_dark':     document.getElementById('bg-overlay').style.background=`rgba(0,0,0,${s.alpha||0.3})`;G.index++;advance(); break;
+    case'overlay_clear':    document.getElementById('bg-overlay').style.background='rgba(0,0,0,0)';G.index++;advance(); break;
+    default:                G.index++;advance();
+  }
+}
+
+function rn(r){if(r==='CHAR1')return G.char1Name;if(r==='PLAYER')return G.playerName;return r||'';}
+function rt(t){return(t||'').replace(/\[PLAYER\]/g,G.playerName).replace(/\[CHAR1\]/g,G.char1Name);}
+
+function getPlaceMeta(placeId){
+  return PLACE_PRESETS.find(l=>l.id===placeId) || LOCATIONS.find(l=>l.id===placeId) || null;
+}
+function getEffectivePlaceId(){
+  return G.currentLoc;
+}
+function updateLocBadge(){
+  const place=getPlaceMeta(G.currentLoc);
+  document.getElementById('loc-badge').textContent = place ? place.name : (G.currentLoc || '');
+}
+
+
+/* ── Location ── */
+function setLocation(locId){
+  G.currentLoc = locId;
+  updateLocBadge();
+  applyBgForCurrentScene();
+  playSceneBgm();
+}
+
+function getSpriteUrlFor(locId, expr){
+  const placeId = locId || getEffectivePlaceId();
+  const locSprite = locData[placeId]?.sprites?.[expr] || null;
+  if(locSprite) return locSprite;
+  return defaultAssets.sprites?.[expr] || defaultAssets.sprites?.normal || null;
+}
+function applyBgForCurrentScene(){
+  const locId = getEffectivePlaceId();
+  const loc = getPlaceMeta(locId);
+  const el = document.getElementById('bg-layer');
+  const ld = locData[locId];
+  el.style.cssText = 'position:absolute;inset:0;z-index:0;transition:all .5s;background-size:cover;background-position:center center;background-repeat:no-repeat;';
+  if(ld && ld.bg){
+    el.style.backgroundImage = `url("${ld.bg}")`;
+  } else if(defaultAssets.bg){
+    el.style.backgroundImage = `url("${defaultAssets.bg}")`;
+  } else {
+    el.style.background = (loc ? loc.defaultBg : 'linear-gradient(160deg,#c8c0c8,#b8b0c0)');
+  }
+}
+
+function applyBgForCurrentLoc(){
+  applyBgForCurrentScene();
+}
+
+/* ── Sprite ── */
+function showText(step){
+  clearTimeout(typeTimer);clearTimeout(G.autoTimer);
+  const name=rn(step.name), text=rt(step.text);
+  const nt=document.getElementById('nm-tag');
+  const ni=document.getElementById('nm-icon');
+  nt.textContent=name; nt.dataset.e=name?'0':'1';
+  ni.dataset.e=name?'0':'1';
+
+  const sw=document.getElementById('sprite-wrap'), si=document.getElementById('sprite-img');
+  if(step.sprite){
+    const expr=step.expr||'normal';
+    const url=getSpriteUrlFor(getEffectivePlaceId(), expr);
+    if(url){
+      si.classList.add('fade');
+      setTimeout(()=>{si.src=url;si.classList.remove('fade');},150);
+      sw.classList.remove('hidden');
+    } else { sw.classList.add('hidden'); }
+  } else { sw.classList.add('hidden'); }
+
+  G.history.push({name,text});
+  G.isTyping=true;G.textDone=false;
+  document.getElementById('nxt').classList.remove('v');
+  const el=document.getElementById('txt'); el.innerHTML='';
+  const lines=text.split('\n'); let li=0,ci=0;
+  const spd=Math.max(10,90-G.textSpeed*9);
+  function tick(){
+    if(li<lines.length){
+      if(ci<lines[li].length){
+        el.innerHTML=lines.slice(0,li).map(l=>`<span>${l}</span><br>`).join('')+`<span>${lines[li].slice(0,ci+1)}</span>`;
+        ci++;playSe();typeTimer=setTimeout(tick,spd);
+      } else {li++;ci=0;typeTimer=setTimeout(tick,spd);}
+    } else finishText();
+  }
+  tick();
+}
+function finishText(){
+  G.isTyping=false;G.textDone=true;
+  document.getElementById('nxt').classList.add('v');
+  if(G.autoMode)G.autoTimer=setTimeout(nextStep,1900);
+}
+function nextStep(){
+  clearTimeout(G.autoTimer);
+  if(!document.getElementById('ch-wrap').classList.contains('hidden'))return;
+  G.index++;G.textDone=false;document.getElementById('nxt').classList.remove('v');advance();
+}
+function handleClick(){
+  if(G.isTyping){
+    clearTimeout(typeTimer);
+    const s=(SCENARIO[G.label]||[])[G.index];
+    if(s&&s.type==='text'){const lines=rt(s.text).split('\n');document.getElementById('txt').innerHTML=lines.map(l=>`<span>${l}</span>`).join('<br>');}
+    finishText();
+  } else if(G.textDone){
+    playNextSe();
+    nextStep();
+  }
+}
+
+/* ── Choices ── */
+function showChoices(step){
+  document.getElementById('nxt').classList.remove('v');
+  const w=document.getElementById('ch-wrap');w.innerHTML='';
+  step.choices.forEach(c=>{
+    const b=document.createElement('button');b.className='cbtn';
+    b.innerHTML=`<span>${c.text}</span>`;
+    b.onclick=()=>{
+      playChoiceSe();
+      w.classList.add('hidden');
+      G.history.push({name:'選択',text:c.text});
+      if(c.affection)changeAff(c.affection);
+      G.label=c.next;G.index=0;advance();
+    };
+    w.appendChild(b);
+  });
+  w.classList.remove('hidden');
+}
+
+/* ── CG ── */
+function showCG(sceneId){
+  const d=cgData[sceneId];
+  if(!d||!d.url){G.index++;advance();return;} // skip if not registered
+  const cl=document.getElementById('cg-layer');
+  document.getElementById('cg-img').src=d.url;
+  cl.classList.add('show');
+  G._cgPending=true;
+}
+function closeCG(){
+  document.getElementById('cg-layer').classList.remove('show');
+  G._cgPending=false;
+  G.index++;advance();
+}
+
+/* ── Affection ── */
+function renderHearts(){
+  // 0〜200% 表示（maxAff=40 → 40/40*200=200%）
+  const displayPct = Math.round((G.affection / G.maxAff) * 200);
+  const barPct = Math.min(100, displayPct / 2); // バー幅は 0〜100%
+  const bar = document.getElementById('aff-bar');
+  const pctEl = document.getElementById('aff-pct');
+  if(bar) bar.style.width = barPct + '%';
+  if(pctEl) pctEl.textContent = displayPct + '%';
+  // バーの色（常に上書き）
+  if(bar){
+    if(displayPct >= 160) bar.style.background = 'linear-gradient(90deg,#e8608a,#ff85b3)';
+    else if(displayPct >= 100) bar.style.background = 'linear-gradient(90deg,#e8608a,#f5a0c8)';
+    else if(displayPct >= 50)  bar.style.background = 'linear-gradient(90deg,#c0607a,#d890a8)';
+    else bar.style.background = 'linear-gradient(90deg,#888,#aaa)';
+  }
+  // HUDの背景色は常に暗色（CSSが上書きされた場合に備えて）
+  const hud = document.getElementById('aff-hud');
+  if(hud) hud.style.background = '#e8608a';
+}
+function changeAff(d){
+  const prev = G.affection;
+  G.affection = Math.max(0, Math.min(G.maxAff, G.affection + d));
+  renderHearts();
+  const actual = G.affection - prev;
+  // MAXの場合や変化なしはポップアップしない
+  if(actual === 0) return;
+  const changePct = Math.round(Math.abs(actual) / G.maxAff * 200);
+  const p = document.getElementById('aff-pop');
+  if(actual > 0){
+    p.textContent = '💕 ＋' + changePct + '%';
+    p.style.color = 'var(--pink)';
+  } else {
+    p.textContent = '💔 −' + changePct + '%';
+    p.style.color = '#888';
+  }
+  p.classList.add('show');
+  setTimeout(() => p.classList.remove('show'), 1600);
+}
+
+/* ── Audio ── */
+function getCurrentBgmUrl(){
+  return sceneBgmData[G.currentLoc]?.url || G.bgmUrl || null;
+}
+function playBgm(url){
+  const targetUrl = url || getCurrentBgmUrl();
+  if(!targetUrl){ stopBgm(); return; }
+  if(bgmAudio && bgmAudio.src===targetUrl){
+    bgmAudio.volume=G.bgmVol;
+    return;
+  }
+  if(bgmAudio){bgmAudio.pause();bgmAudio=null;}
+  bgmAudio=new Audio(targetUrl);
+  bgmAudio.loop=true;
+  bgmAudio.volume=G.bgmVol;
+  bgmAudio.play().catch(()=>{});
+}
+function playSceneBgm(){
+  playBgm(getCurrentBgmUrl());
+}
+function stopBgm(){if(bgmAudio){bgmAudio.pause();bgmAudio=null;}}
+let seThrot=0;
+function playSe(){if(!G.seUrl)return;const n=Date.now();if(n-seThrot<65)return;seThrot=n;const a=new Audio(G.seUrl);a.volume=G.seVol;a.play().catch(()=>{});}
+function playChoiceSe(){if(!G.choiceSeUrl)return;const a=new Audio(G.choiceSeUrl);a.volume=G.seVol;a.play().catch(()=>{});}
+function playNextSe(){if(!G.nextSeUrl)return;const a=new Audio(G.nextSeUrl);a.volume=G.seVol;a.play().catch(()=>{});}
+
+/* ── AUTO ── */
+function toggleAuto(){
+  G.autoMode=!G.autoMode;
+  document.getElementById('auto-btn').classList.toggle('active',G.autoMode);
+  document.getElementById('auto-corner').classList.toggle('show',G.autoMode);
+  if(G.autoMode&&G.textDone)G.autoTimer=setTimeout(nextStep,1900);
+  else clearTimeout(G.autoTimer);
+}
+
+/* ── Settings ── */
+function buildSettingsUI(){
+  const assetDisabled = canEditAssets() ? '' : 'disabled data-asset-admin';
+  const sb=document.getElementById('scene-bgm-settings-container');
+  sb.innerHTML='';
+  PLACE_PRESETS.forEach(loc=>{
+    const row=document.createElement('div');
+    row.style.cssText='display:flex;align-items:center;gap:10px;margin-bottom:10px;border:1.5px solid var(--pink-l);border-radius:10px;padding:10px 12px;';
+    const label=document.createElement('div');
+    label.style.cssText='flex:0 0 auto;font-size:13px;font-weight:500;color:var(--pink-d);min-width:120px;';
+    label.textContent='🎵 '+loc.name;
+    const zone=document.createElement('div');
+    zone.className='sx';zone.style.cssText='flex:1;margin:0;';
+    const hasBgm=sceneBgmData[loc.id] && sceneBgmData[loc.id].url;
+    zone.innerHTML=`<div class="fz" style="margin:0;min-height:48px;padding:8px;"><div style="font-size:12px">${hasBgm?'BGMを変更':'クリックでBGMを登録'}</div><div class="fok" id="scbgm-${loc.id}">${hasBgm?'✓ '+(sceneBgmData[loc.id].name||'設定済み'):''}</div><input ${assetDisabled} type="file" accept="audio/*" onchange="handleSceneBgm(event,'${loc.id}')"></div><button class="delbtn" type="button" onclick="clearSceneBgm('${loc.id}')" ${(canEditAssets()&&hasBgm)?'':'disabled'} data-asset-admin>削除</button>`;
+    row.appendChild(label);row.appendChild(zone);
+    sb.appendChild(row);
+  });
+
+  const lc=document.getElementById('loc-settings-container');
+  lc.innerHTML='';
+  PLACE_PRESETS.forEach(loc=>{
+    const customNameArea=isCustomPlace(loc.id)?`
+        <div class="ss">
+          <label class="sl">🏷️ カスタム場所名</label>
+          <input class="si" ${assetDisabled} type="text" value="${escapeHtml(loc.name)}" maxlength="20" oninput="renameCustomPlace('${loc.id}', this.value)" placeholder="例：生徒会室、海辺、商店街">
+          <div class="code-badge">location id: ${loc.id}</div>
+        </div>`:'';
+    const block=document.createElement('div');block.className='loc-block';
+    block.innerHTML=`
+      <div class="loc-head" onclick="this.nextElementSibling.classList.toggle('open')">
+        <span>📍 ${loc.name}</span><span>▼</span>
+      </div>
+      <div class="loc-body" id="lb-${loc.id}">
+        ${customNameArea}
+        <div class="ss">
+          <label class="sl">🌅 背景画像</label>
+          <div class="sx"><div class="fz"><div>クリックで選択</div><div class="fok" id="bgok-${loc.id}"></div><input ${assetDisabled} type="file" accept="image/*" onchange="handleLocBg(event,'${loc.id}')"></div><button class="delbtn" type="button" onclick="clearLocBg('${loc.id}')" ${(canEditAssets()&&locData[loc.id].bg)?'':'disabled'} data-asset-admin>削除</button></div>
+        </div>
+        <div class="ss">
+          <label class="sl">🖼️ 立ち絵 4表情（この場所の衣装）</label>
+          <div class="eg">
+            <div class="es"><div class="el">😐 通常</div><div class="eh">選択</div><div class="eok" id="spok-${loc.id}-normal"></div><input ${assetDisabled} type="file" accept="image/*" onchange="handleLocSprite(event,'${loc.id}','normal')"><button class="delbtn" style="margin-top:4px;padding:4px 10px;font-size:10px" type="button" onclick="clearLocSprite('${loc.id}','normal')" ${(canEditAssets()&&locData[loc.id].sprites.normal)?'':'disabled'} data-asset-admin>削除</button></div>
+            <div class="es"><div class="el">😊 笑顔</div><div class="eh">選択</div><div class="eok" id="spok-${loc.id}-smile"></div><input ${assetDisabled} type="file" accept="image/*" onchange="handleLocSprite(event,'${loc.id}','smile')"><button class="delbtn" style="margin-top:4px;padding:4px 10px;font-size:10px" type="button" onclick="clearLocSprite('${loc.id}','smile')" ${(canEditAssets()&&locData[loc.id].sprites.smile)?'':'disabled'} data-asset-admin>削除</button></div>
+            <div class="es"><div class="el">😲 驚き</div><div class="eh">選択</div><div class="eok" id="spok-${loc.id}-surprise"></div><input ${assetDisabled} type="file" accept="image/*" onchange="handleLocSprite(event,'${loc.id}','surprise')"><button class="delbtn" style="margin-top:4px;padding:4px 10px;font-size:10px" type="button" onclick="clearLocSprite('${loc.id}','surprise')" ${(canEditAssets()&&locData[loc.id].sprites.surprise)?'':'disabled'} data-asset-admin>削除</button></div>
+            <div class="es"><div class="el">😢 悲しみ</div><div class="eh">選択</div><div class="eok" id="spok-${loc.id}-sad"></div><input ${assetDisabled} type="file" accept="image/*" onchange="handleLocSprite(event,'${loc.id}','sad')"><button class="delbtn" style="margin-top:4px;padding:4px 10px;font-size:10px" type="button" onclick="clearLocSprite('${loc.id}','sad')" ${(canEditAssets()&&locData[loc.id].sprites.sad)?'':'disabled'} data-asset-admin>削除</button></div>
+          </div>
+          <div class="hint">💡 シナリオ内で {type:'location', loc:'${loc.id}'} と書くとこの場所設定を直接呼び出せます</div>
+        </div>
+        <button class="preview-btn" type="button" onclick="previewPlace('${loc.id}')">この場所をプレビュー</button>
+      </div>`;
+    lc.appendChild(block);
+    if(locData[loc.id].bg) document.getElementById('bgok-'+loc.id).textContent='✓ 設定済み';
+    ['normal','smile','surprise','sad'].forEach(e=>{
+      if(locData[loc.id].sprites[e]) document.getElementById(`spok-${loc.id}-${e}`).textContent='✓ 設定済み';
+    });
+  });
+
+  const cc=document.getElementById('cg-settings-container');
+  cc.innerHTML='';
+  CG_SCENES.forEach(scene=>{
+    const row=document.createElement('div');
+    row.style.cssText='display:flex;align-items:center;gap:10px;margin-bottom:10px;border:1.5px solid var(--pink-l);border-radius:10px;padding:10px 12px;';
+    const label=document.createElement('div');
+    label.style.cssText='flex:0 0 auto;font-size:13px;font-weight:500;color:var(--pink-d);min-width:160px;';
+    label.textContent=scene.label;
+    const zone=document.createElement('div');
+    zone.className='sx';zone.style.cssText='flex:1;margin:0;';
+    const hasImg=cgData[scene.id].url;
+    zone.innerHTML=`<div class="fz" style="margin:0;min-height:48px;padding:8px;"><div style="font-size:12px">${hasImg?'画像を変更':'クリックで画像を登録'}</div><div class="fok" id="cgok-${scene.id}">${hasImg?'✓ '+cgData[scene.id].name:''}</div><input ${assetDisabled} type="file" accept="image/*" onchange="handleCG(event,'${scene.id}')"></div><button class="delbtn" type="button" onclick="clearCG('${scene.id}')" ${(canEditAssets()&&hasImg)?'':'disabled'} data-asset-admin>削除</button>`;
+    row.appendChild(label);row.appendChild(zone);
+    cc.appendChild(row);
+  });
+  updateAssetEditorUI();
+}
+
+function escapeHtml(v){
+  return String(v||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+function renameCustomPlace(placeId, value){
+  if(!canEditAssets()) return;
+  const place=getPlaceMeta(placeId);
+  if(!place || !isCustomPlace(placeId)) return;
+  place.name=(value||'').trim() || 'カスタム場所';
+  if(G.currentLoc===placeId) updateLocBadge();
+  savePersistentData();
+}
+function previewPlace(placeId){
+  G.currentLoc=placeId;
+  updateLocBadge();
+  applyBgForCurrentScene();
+  playSceneBgm();
+}
+
+function openSettings(){
+  if(!isAdminMode()){
+    alert('設定画面は管理者専用です。');
+    return;
+  }
+  buildSettingsUI();
+  document.getElementById('s-title').value=G.gameTitle;
+  document.getElementById('s-cname').value=G.char1Name;
+  document.getElementById('s-bv').value=Math.round(G.bgmVol*100);
+  document.getElementById('bv-n').textContent=Math.round(G.bgmVol*100);
+  document.getElementById('s-sv').value=Math.round(G.seVol*100);
+  document.getElementById('sv-n').textContent=Math.round(G.seVol*100);
+  document.getElementById('s-spd').value=G.textSpeed;
+  document.getElementById('sp-n').textContent=G.textSpeed;
+  document.getElementById('bgm-ok').textContent=G.bgmUrl ? '✓ 設定済み' : '';
+  document.getElementById('se-ok').textContent=G.seUrl ? '✓ 設定済み' : '';
+  document.getElementById('choice-se-ok').textContent=G.choiceSeUrl ? '✓ 設定済み' : '';
+  document.getElementById('next-se-ok').textContent=G.nextSeUrl ? '✓ 設定済み' : '';
+  updateAudioDeleteButtons();
+  updateAssetEditorUI();
+  document.getElementById('settings-modal').classList.remove('hidden');
+}
+function applySettings(){
+  G.gameTitle=document.getElementById('s-title').value||'カイくん恋愛ゲーム';
+  G.char1Name=document.getElementById('s-cname').value||'カイ';
+  G.textSpeed=parseInt(document.getElementById('s-spd').value);
+  document.getElementById('logo-txt').textContent=G.gameTitle;
+  if(bgmAudio)bgmAudio.volume=G.bgmVol;
+  savePersistentData();
+  cm('settings-modal');
+}
+function lv(t,v){if(t==='b'){G.bgmVol=v/100;document.getElementById('bv-n').textContent=v;if(bgmAudio)bgmAudio.volume=G.bgmVol;}else{G.seVol=v/100;document.getElementById('sv-n').textContent=v;}}
+
+/* File handlers */
+function updateAudioDeleteButtons(){
+  const bgmBtn=document.getElementById('clear-bgm-btn');
+  const seBtn=document.getElementById('clear-se-btn');
+  const choiceSeBtn=document.getElementById('clear-choice-se-btn');
+  const nextSeBtn=document.getElementById('clear-next-se-btn');
+  if(bgmBtn) bgmBtn.disabled=(!G.bgmUrl)||!canEditAssets();
+  if(seBtn) seBtn.disabled=(!G.seUrl)||!canEditAssets();
+  if(choiceSeBtn) choiceSeBtn.disabled=(!G.choiceSeUrl)||!canEditAssets();
+  if(nextSeBtn) nextSeBtn.disabled=(!G.nextSeUrl)||!canEditAssets();
+}
+async function clearGlobalBgm(){
+  if(!guardAssetEdit()) return;
+  G.bgmUrl=null;
+  document.getElementById('bgm-ok').textContent='';
+  updateAudioDeleteButtons();
+  if(!sceneBgmData[G.currentLoc]?.url) stopBgm();
+  await savePersistentData();
+}
+async function clearSe(){
+  if(!guardAssetEdit()) return;
+  G.seUrl=null;
+  document.getElementById('se-ok').textContent='';
+  updateAudioDeleteButtons();
+  await savePersistentData();
+}
+async function clearChoiceSe(){
+  if(!guardAssetEdit()) return;
+  G.choiceSeUrl=null;
+  document.getElementById('choice-se-ok').textContent='';
+  updateAudioDeleteButtons();
+  await savePersistentData();
+}
+async function clearNextSe(){
+  if(!guardAssetEdit()) return;
+  G.nextSeUrl=null;
+  document.getElementById('next-se-ok').textContent='';
+  updateAudioDeleteButtons();
+  await savePersistentData();
+}
+async function clearSceneBgm(locId){
+  if(!guardAssetEdit()) return;
+  sceneBgmData[locId]={url:null,name:''};
+  if(G.currentLoc===locId) playSceneBgm();
+  buildSettingsUI();
+  await savePersistentData();
+}
+async function clearLocBg(locId){
+  if(!guardAssetEdit()) return;
+  locData[locId].bg=null;
+  if(getEffectivePlaceId()===locId) applyBgForCurrentLoc();
+  buildSettingsUI();
+  await savePersistentData();
+}
+async function clearLocSprite(locId,expr){
+  if(!guardAssetEdit()) return;
+  locData[locId].sprites[expr]=null;
+  buildSettingsUI();
+  await savePersistentData();
+}
+async function clearCG(sceneId){
+  if(!guardAssetEdit()) return;
+  cgData[sceneId]={url:null,name:''};
+  buildSettingsUI();
+  await savePersistentData();
+}
+
+/* File handlers */
+function readFileAsDataURL(file){
+  return new Promise((resolve,reject)=>{
+    const reader=new FileReader();
+    reader.onload=()=>resolve(reader.result);
+    reader.onerror=()=>reject(new Error('ファイルの読み込みに失敗しました'));
+    reader.readAsDataURL(file);
+  });
+}
+
+const DB_NAME='kaiNovelGameDB';
+const DB_VERSION=1;
+const STORE_NAME='kv';
+const SAVE_KEY='kaiGamePersistentData_v2';
+let dbPromise=null;
+
+function getDB(){
+  if(dbPromise) return dbPromise;
+  dbPromise = new Promise((resolve,reject)=>{
+    const req=indexedDB.open(DB_NAME, DB_VERSION);
+    req.onupgradeneeded=()=>{
+      const db=req.result;
+      if(!db.objectStoreNames.contains(STORE_NAME)) db.createObjectStore(STORE_NAME);
+    };
+    req.onsuccess=()=>resolve(req.result);
+    req.onerror=()=>reject(req.error||new Error('IndexedDBの初期化に失敗しました'));
+  });
+  return dbPromise;
+}
+function idbGet(key){
+  return getDB().then(db=>new Promise((resolve,reject)=>{
+    const tx=db.transaction(STORE_NAME,'readonly');
+    const store=tx.objectStore(STORE_NAME);
+    const req=store.get(key);
+    req.onsuccess=()=>resolve(req.result);
+    req.onerror=()=>reject(req.error||new Error('IndexedDBの読み込みに失敗しました'));
+  }));
+}
+function idbSet(key,value){
+  return getDB().then(db=>new Promise((resolve,reject)=>{
+    const tx=db.transaction(STORE_NAME,'readwrite');
+    const store=tx.objectStore(STORE_NAME);
+    const req=store.put(value,key);
+    req.onsuccess=()=>resolve();
+    req.onerror=()=>reject(req.error||new Error('IndexedDBの保存に失敗しました'));
+  }));
+}
+async function migrateFromLocalStorageIfNeeded(){
+  try{
+    const existing = await idbGet(SAVE_KEY);
+    if(existing) return;
+    const legacyRaw = localStorage.getItem(SAVE_KEY);
+    if(!legacyRaw) return;
+    const parsed = JSON.parse(legacyRaw);
+    await idbSet(SAVE_KEY, parsed);
+    localStorage.removeItem(SAVE_KEY);
+  }catch(err){
+    console.warn('旧保存データの移行に失敗しました', err);
+  }
+}
+async function savePersistentData(){
+  try{
+    await idbSet(SAVE_KEY, {
+      locData,
+      defaultAssets,
+      cgData,
+      sceneBgmData,
+      placeNames:Object.fromEntries(PLACE_PRESETS.filter(p=>isCustomPlace(p.id)).map(p=>[p.id,p.name])),
+      saves,
+      settings:{
+        playerName:G.playerName,
+        char1Name:G.char1Name,
+        gameTitle:G.gameTitle,
+        affection:G.affection,
+        currentLoc:G.currentLoc,
+        currentScene:G.currentScene,
+        bgmVol:G.bgmVol,
+        seVol:G.seVol,
+        textSpeed:G.textSpeed,
+        bgmUrl:G.bgmUrl,
+        seUrl:G.seUrl,
+        choiceSeUrl:G.choiceSeUrl,
+        nextSeUrl:G.nextSeUrl,
+        loveFlag:G.loveFlag
+      }
+    });
+  }catch(err){
+    console.error(err);
+    alert('IndexedDBへの保存に失敗しました。ブラウザの保存容量やプライベートモード設定をご確認ください。');
+  }
+}
+async function loadPersistentData(){
+  try{
+    await migrateFromLocalStorageIfNeeded();
+    const parsed=await idbGet(SAVE_KEY);
+    if(!parsed)return;
+
+    if(parsed.locData){
+      PLACE_PRESETS.forEach(loc=>{
+        const savedLoc=parsed.locData[loc.id];
+        if(!savedLoc)return;
+        locData[loc.id].bg=savedLoc.bg||null;
+        locData[loc.id].sprites={
+          normal:savedLoc.sprites?.normal||null,
+          smile:savedLoc.sprites?.smile||null,
+          surprise:savedLoc.sprites?.surprise||null,
+          sad:savedLoc.sprites?.sad||null,
+        };
+      });
+    }
+    if(parsed.defaultAssets){
+      defaultAssets.bg=parsed.defaultAssets.bg||null;
+      defaultAssets.sprites={
+        normal:parsed.defaultAssets.sprites?.normal||null,
+        smile:parsed.defaultAssets.sprites?.smile||null,
+        surprise:parsed.defaultAssets.sprites?.surprise||null,
+        sad:parsed.defaultAssets.sprites?.sad||null,
+      };
+    }
+
+    if(parsed.cgData){
+      CG_SCENES.forEach(scene=>{
+        const savedCg=parsed.cgData[scene.id];
+        if(!savedCg)return;
+        cgData[scene.id]={
+          url:savedCg.url||null,
+          name:savedCg.name||''
+        };
+      });
+    }
+
+    if(parsed.sceneBgmData){
+      PLACE_PRESETS.forEach(loc=>{
+        const savedBgm=parsed.sceneBgmData[loc.id];
+        if(!savedBgm)return;
+        sceneBgmData[loc.id]={
+          url:savedBgm.url||null,
+          name:savedBgm.name||''
+        };
+      });
+    }
+
+    if(parsed.placeNames){
+      PLACE_PRESETS.forEach(place=>{
+        if(isCustomPlace(place.id) && parsed.placeNames[place.id]){
+          place.name=parsed.placeNames[place.id];
+        }
+      });
+    }
+
+    if(Array.isArray(parsed.saves)){
+      saves=parsed.saves;
+    }
+
+    if(parsed.settings){
+      G.playerName=parsed.settings.playerName||G.playerName;
+      G.char1Name=parsed.settings.char1Name||G.char1Name;
+      G.gameTitle=parsed.settings.gameTitle||G.gameTitle;
+      G.affection=parsed.settings.affection ?? G.affection;
+      G.currentLoc=parsed.settings.currentLoc||G.currentLoc;
+      G.currentScene=parsed.settings.currentScene||G.currentScene;
+      G.bgmVol=typeof parsed.settings.bgmVol==='number'?parsed.settings.bgmVol:G.bgmVol;
+      G.seVol=typeof parsed.settings.seVol==='number'?parsed.settings.seVol:G.seVol;
+      G.textSpeed=parsed.settings.textSpeed||G.textSpeed;
+      G.bgmUrl=parsed.settings.bgmUrl||null;
+      G.seUrl=parsed.settings.seUrl||null;
+      G.choiceSeUrl=parsed.settings.choiceSeUrl||null;
+      G.nextSeUrl=parsed.settings.nextSeUrl||null;
+      G.loveFlag=!!parsed.settings.loveFlag;
+    }
+
+    document.getElementById('logo-txt').textContent=G.gameTitle;
+    renderHearts();
+    updateLocBadge();
+    applyBgForCurrentLoc();
+  }catch(err){
+    console.error('保存データの読み込みに失敗しました', err);
+  }
+}
+async function handleDefaultBg(e){
+  if(!guardAssetEdit()) return;
+  const f=e.target.files[0];if(!f)return;
+  try{
+    defaultAssets.bg=await readFileAsDataURL(f);
+    const ok=document.getElementById('bgok-default');if(ok)ok.textContent='✓ '+f.name;
+    const btn=document.getElementById('clear-default-bg-btn'); if(btn) btn.disabled=false;
+    applyBgForCurrentLoc();
+    savePersistentData();
+  }catch(err){
+    alert('デフォルト背景画像の保存に失敗しました');
+  }
+}
+async function handleDefaultSprite(e,expr){
+  if(!guardAssetEdit()) return;
+  const f=e.target.files[0];if(!f)return;
+  try{
+    defaultAssets.sprites[expr]=await readFileAsDataURL(f);
+    const ok=document.getElementById(`spok-default-${expr}`);if(ok)ok.textContent='✓ '+f.name;
+    const btn=document.getElementById(`clear-default-${expr}-btn`); if(btn) btn.disabled=false;
+    savePersistentData();
+  }catch(err){
+    alert('デフォルト立ち絵の保存に失敗しました');
+  }
+}
+async function clearDefaultBg(){
+  if(!guardAssetEdit()) return;
+  defaultAssets.bg=null;
+  const ok=document.getElementById('bgok-default');if(ok)ok.textContent='';
+  const btn=document.getElementById('clear-default-bg-btn'); if(btn) btn.disabled=true;
+  applyBgForCurrentLoc();
+  await savePersistentData();
+}
+async function clearDefaultSprite(expr){
+  if(!guardAssetEdit()) return;
+  defaultAssets.sprites[expr]=null;
+  const ok=document.getElementById(`spok-default-${expr}`);if(ok)ok.textContent='';
+  const btn=document.getElementById(`clear-default-${expr}-btn`); if(btn) btn.disabled=true;
+  await savePersistentData();
+}
+async function handleLocBg(e,locId){
+  if(!guardAssetEdit()) return;
+  const f=e.target.files[0];if(!f)return;
+  try{
+    locData[locId].bg=await readFileAsDataURL(f);
+    const ok=document.getElementById('bgok-'+locId);if(ok)ok.textContent='✓ '+f.name;
+    if(getEffectivePlaceId()===locId) applyBgForCurrentLoc();
+    savePersistentData();
+  }catch(err){
+    alert('背景画像の保存に失敗しました');
+  }
+}
+async function handleLocSprite(e,locId,expr){
+  if(!guardAssetEdit()) return;
+  const f=e.target.files[0];if(!f)return;
+  try{
+    locData[locId].sprites[expr]=await readFileAsDataURL(f);
+    const ok=document.getElementById(`spok-${locId}-${expr}`);if(ok)ok.textContent='✓ '+f.name;
+    savePersistentData();
+  }catch(err){
+    alert('立ち絵の保存に失敗しました');
+  }
+}
+async function handleCG(e,sceneId){
+  if(!guardAssetEdit()) return;
+  const f=e.target.files[0];if(!f)return;
+  try{
+    cgData[sceneId]={url:await readFileAsDataURL(f),name:f.name};
+    const ok=document.getElementById('cgok-'+sceneId);if(ok)ok.textContent='✓ '+f.name;
+    savePersistentData();
+  }catch(err){
+    alert('CG画像の保存に失敗しました');
+  }
+}
+async function handleBgmFile(e){
+  if(!guardAssetEdit()) return;
+  const f=e.target.files[0];if(!f)return;
+  try{
+    G.bgmUrl=await readFileAsDataURL(f);
+    document.getElementById('bgm-ok').textContent='✓ '+f.name;
+    updateAudioDeleteButtons();
+    savePersistentData();
+    playSceneBgm();
+  }catch(err){
+    alert('BGMの保存に失敗しました');
+  }
+}
+async function handleSceneBgm(e,locId){
+  if(!guardAssetEdit()) return;
+  const f=e.target.files[0];if(!f)return;
+  try{
+    sceneBgmData[locId]={url:await readFileAsDataURL(f),name:f.name};
+    const ok=document.getElementById('scbgm-'+locId);if(ok)ok.textContent='✓ '+f.name;
+    savePersistentData();
+    if(G.currentLoc===locId || getEffectivePlaceId()===locId)playSceneBgm();
+  }catch(err){
+    alert('シーン別BGMの保存に失敗しました');
+  }
+}
+async function handleSeFile(e){
+  if(!guardAssetEdit()) return;
+  const f=e.target.files[0];if(!f)return;
+  try{
+    G.seUrl=await readFileAsDataURL(f);
+    document.getElementById('se-ok').textContent='✓ '+f.name;
+    updateAudioDeleteButtons();
+    savePersistentData();
+  }catch(err){
+    alert('SEの保存に失敗しました');
+  }
+}
+async function handleChoiceSeFile(e){
+  if(!guardAssetEdit()) return;
+  const f=e.target.files[0];if(!f)return;
+  try{
+    G.choiceSeUrl=await readFileAsDataURL(f);
+    document.getElementById('choice-se-ok').textContent='✓ '+f.name;
+    updateAudioDeleteButtons();
+    savePersistentData();
+  }catch(err){
+    alert('選択肢SEの保存に失敗しました');
+  }
+}
+async function handleNextSeFile(e){
+  if(!guardAssetEdit()) return;
+  const f=e.target.files[0];if(!f)return;
+  try{
+    G.nextSeUrl=await readFileAsDataURL(f);
+    document.getElementById('next-se-ok').textContent='✓ '+f.name;
+    updateAudioDeleteButtons();
+    savePersistentData();
+  }catch(err){
+    alert('テキスト切り替えSEの保存に失敗しました');
+  }
+}
+
+/* Save / Load */
+function bsave(){return{label:G.label,index:G.index,affection:G.affection,loveFlag:G.loveFlag,playerName:G.playerName,currentLoc:G.currentLoc,currentScene:G.currentScene,history:[...G.history],preview:document.getElementById('txt').textContent.slice(0,26),date:new Date().toLocaleString('ja-JP')};}
+function openSave(){rslots('save-slots',true);document.getElementById('save-modal').classList.remove('hidden');}
+function openLoad(ctx){loadCtx=ctx;rslots('load-slots',false);document.getElementById('load-modal').classList.remove('hidden');}
+function rslots(id,isSave){
+  const el=document.getElementById(id);el.innerHTML='';
+  for(let i=0;i<6;i++){
+    const d=saves[i],s=document.createElement('div');s.className='slot'+(d?'':' empty');
+    if(d){s.innerHTML=`<div class="sn">Slot ${i+1}</div><div class="st">${d.preview}…</div><div class="sd">${d.date}</div>`;s.onclick=isSave?()=>{saves[i]=bsave();savePersistentData();cm('save-modal');}:()=>{loadSlot(d);cm('load-modal');};}
+    else{s.innerHTML=`<div class="sn">Slot ${i+1}</div><div>＋</div>`;if(isSave)s.onclick=()=>{saves[i]=bsave();savePersistentData();cm('save-modal');};}
+    el.appendChild(s);
+  }
+}
+function loadSlot(d){
+  G.label=d.label;G.currentScene=d.currentScene||d.label;G.index=d.index;G.affection=d.affection;G.loveFlag=!!d.loveFlag;G.playerName=d.playerName;G.history=[...d.history];
+  if(d.currentLoc){G.currentLoc=d.currentLoc;setLocation(d.currentLoc);}
+  renderHearts();showScr('game-screen');G.isTyping=false;G.textDone=false;savePersistentData();advance();
+}
+
+/* Log */
+function openLog(){
+  const el=document.getElementById('log-list');el.innerHTML='';
+  [...G.history].reverse().forEach(h=>{
+    const d=document.createElement('div');d.className='li';
+    d.innerHTML=`${h.name?`<div class="ln">${h.name}</div>`:''}  <div class="lt">${h.text.replace(/\n/g,'<br>')}</div>`;
+    el.appendChild(d);
+  });
+  document.getElementById('log-modal').classList.remove('hidden');
+}
+
+async function initApp(){
+  await loadPersistentData();
+  refreshSettingsAccess();
+  renderHearts();
+  updateAudioDeleteButtons();
+  if(isAdminMode() && location.hash==='#settings'){
+    openSettings();
+  }
+}
+initApp();
+
+// ===== 追加ストーリー =====
+SCENARIO.after_confession = [
+  {type:'text', name:'', text:'——それから。', sprite:false},
+  {type:'jump', label:'school_life_start'}
+];
+
+SCENARIO.school_life_start = [
+  {type:'location', loc:'classroom'},
+  {type:'bgm_play'},
+  {type:'text', name:'', text:'季節は少し進んで——', sprite:false},
+  {type:'text', name:'', text:'変わらない日常。\nでも、少しだけ違う。', sprite:false},
+  {type:'jump', label:'way_home'}
+];
+
+SCENARIO.way_home = [
+  {type:'location', loc:'street_evening'},
+  {type:'cg', scene:'way_home'},
+  {type:'branch', cond:'loveFlag', ifTrue:'way_love', ifFalse:'way_notlove'}
+];
+
+SCENARIO.way_love = [
+  {type:'text', name:'', text:'昇降口を出たあとも、どちらからともなく隣を選ぶ。\n前は偶然だった距離が、今はちゃんと意味を持っている気がした。', sprite:false},
+  {type:'text', name:'CHAR1', text:'最近さ、こういう時間増えたよな。', sprite:true, expr:'smile'},
+  {type:'text', name:'', text:'何気ない言い方なのに、その声は少しだけやわらかい。\n恋人になってからも、こうして並んで歩くたびにまだ少しだけ照れる。', sprite:false},
+  {type:'text', name:'', text:'（付き合ったらもっと自然になると思ってた。\nでも、近くなったぶん、前よりずっと意識してる）', sprite:false},
+  {type:'choice', choices:[
+    {text:'「嬉しい」', next:'way_love_good', affection:1},
+    {text:'「もう慣れたよ」', next:'way_love_cool', affection:-1},
+    {text:'「カイくんは？」', next:'way_love_question', affection:1}
+  ]}
+];
+
+SCENARIO.way_love_good = [
+  {type:'text', name:'CHAR1', text:'……そっか。', sprite:true, expr:'smile'},
+  {type:'text', name:'', text:'短く笑ったあと、カイくんは一度だけ視線を逸らした。\n耳のあたりが少し赤い。', sprite:false},
+  {type:'text', name:'CHAR1', text:'じゃあ、増やしてもいい？', sprite:true, expr:'smile'},
+  {type:'text', name:'', text:'冗談みたいに聞こえるのに、答えを待つ横顔は思っていたより真剣だった。', sprite:false},
+  {type:'text', name:'', text:'歩く速さが少しだけゆっくりになる。\n帰り道が、いつもより長く続けばいいのにと思った。', sprite:false},
+  {type:'jump', label:'jealous_event'}
+];
+
+SCENARIO.way_love_cool = [
+  {type:'text', name:'CHAR1', text:'……慣れるの早くない？', sprite:true, expr:'sad'},
+  {type:'text', name:'', text:'軽く返したつもりだったのに、思ったより拗ねた声で返ってきた。', sprite:false},
+  {type:'text', name:'CHAR1', text:'いや、別にいいけど。いいけどさ。', sprite:true, expr:'normal'},
+  {type:'text', name:'', text:'そう言いながら、足元の小石をつま先で蹴る。\n子どもみたいな仕草なのに、少しだけ愛おしいと思ってしまう。', sprite:false},
+  {type:'text', name:'', text:'（冗談でも、言い方って大事なんだ）', sprite:false},
+  {type:'jump', label:'jealous_event'}
+];
+
+SCENARIO.way_love_question = [
+  {type:'text', name:'CHAR1', text:'俺？', sprite:true, expr:'surprise'},
+  {type:'text', name:'', text:'聞き返してから、カイくんは一瞬だけ黙った。', sprite:false},
+  {type:'text', name:'CHAR1', text:'……まだ普通に緊張する。', sprite:true, expr:'surprise'},
+  {type:'text', name:'', text:'言い切ったあとで、言わなきゃよかったみたいに目を逸らす。\nその横顔が少し赤い。', sprite:false},
+  {type:'text', name:'', text:'見ているこっちまで落ち着かなくなる。\nうれしいのに、胸の奥がきゅっとして、うまく息ができない。', sprite:false},
+  {type:'jump', label:'jealous_event'}
+];
+
+SCENARIO.way_notlove = [
+  {type:'text', name:'', text:'帰る方向が同じ、ただそれだけのはずなのに。\nいつのまにか、放課後の隣にカイくんがいるのが当たり前になりつつあった。', sprite:false},
+  {type:'text', name:'CHAR1', text:'一緒に帰るの、なんか普通になったな。', sprite:true, expr:'normal'},
+  {type:'text', name:'', text:'近いのに、まだ少しだけ遠い。\n曖昧な距離が、むしろ前より気になってしまう。', sprite:false},
+  {type:'text', name:'', text:'（普通、って言ったのに。\n全然、普通じゃない）', sprite:false},
+  {type:'choice', choices:[
+    {text:'「私は嬉しいよ」', next:'way_notlove_good', affection:1},
+    {text:'「そうだね」', next:'way_notlove_neutral', affection:-1},
+    {text:'「変な感じ」', next:'way_notlove_awkward', affection:-1}
+  ]}
+];
+
+SCENARIO.way_notlove_good = [
+  {type:'text', name:'CHAR1', text:'……そっか。', sprite:true, expr:'smile'},
+  {type:'text', name:'', text:'返事は短いのに、そのあと少しだけ歩く距離が近づく。', sprite:false},
+  {type:'text', name:'CHAR1', text:'なら、悪くないかも。', sprite:true, expr:'smile'},
+  {type:'text', name:'', text:'何気ない言葉なのに、空気が少しだけやわらかくなる。\nこのままもう少しだけ、並んでいたいと思った。', sprite:false},
+  {type:'jump', label:'jealous_event'}
+];
+
+SCENARIO.way_notlove_neutral = [
+  {type:'text', name:'CHAR1', text:'だよな。', sprite:true, expr:'normal'},
+  {type:'text', name:'', text:'会話は途切れない。でも、踏み込むきっかけもまだ見つからない。', sprite:false},
+  {type:'text', name:'', text:'沈黙が気まずいわけじゃない。\nそれでも、あと一歩だけ足りない距離がもどかしかった。', sprite:false},
+  {type:'jump', label:'jealous_event'}
+];
+
+SCENARIO.way_notlove_awkward = [
+  {type:'text', name:'CHAR1', text:'……まあ、そうかも。', sprite:true, expr:'sad'},
+  {type:'text', name:'', text:'少しだけ歩幅がずれて、言いすぎたかもしれないと後から気づく。', sprite:false},
+  {type:'text', name:'', text:'さっきまで自然だったはずの隣が、急に遠く感じた。\n言葉一つで空気が変わることを、思い知らされる。', sprite:false},
+  {type:'jump', label:'jealous_event'}
+];
+
+SCENARIO.jealous_event = [
+  {type:'location', loc:'classroom'},
+  {type:'cg', scene:'jealous'},
+  {type:'branch', cond:'loveFlag', ifTrue:'jealous_love', ifFalse:'jealous_notlove'}
+];
+
+SCENARIO.jealous_love = [
+  {type:'text', name:'', text:'昼休みの教室はうるさいくらいに明るいのに、カイくんの一言だけがやけに静かに落ちてきた。', sprite:false},
+  {type:'text', name:'CHAR1', text:'……楽しそうじゃん。', sprite:true, expr:'normal'},
+  {type:'text', name:'', text:'平気そうな顔をしている。\nでも、目だけが少し違う。', sprite:false},
+  {type:'text', name:'', text:'（あ、これ——）', sprite:false},
+  {type:'choice', choices:[
+    {text:'「嫉妬してる？」', next:'jealous_love_attack', affection:2},
+    {text:'「ただ話してただけだよ」', next:'jealous_love_safe', affection:-1},
+    {text:'「カイくんも混ざる？」', next:'jealous_love_invite', affection:1},
+    {text:'「別に関係なくない？」', next:'jealous_love_break', affection:-2}
+  ]}
+];
+
+SCENARIO.jealous_love_attack = [
+  {type:'text', name:'CHAR1', text:'……は？　してねぇし。', sprite:true, expr:'surprise'},
+  {type:'text', name:'', text:'反射みたいに返したくせに、そのあと言葉が止まる。\n目が泳いで、誤魔化しきれていない。', sprite:false},
+  {type:'text', name:'CHAR1', text:'……まあ、ちょっとは。', sprite:true, expr:'smile'},
+  {type:'text', name:'', text:'認めた瞬間、こっちの心臓まで変な音を立てた。\nそんなふうに思われていることが、うれしいのに、くすぐったくて、落ち着かない。', sprite:false},
+  {type:'text', name:'CHAR1', text:'……お前が楽しそうなのはいいけど、俺以外と盛り上がるのはなんかやだ。', sprite:true, expr:'sad'},
+  {type:'text', name:'', text:'小さく零した本音が、花火のときとは違う近さで胸に刺さる。', sprite:false},
+  {type:'jump', label:'sports_festival'}
+];
+
+SCENARIO.jealous_love_safe = [
+  {type:'text', name:'CHAR1', text:'……そ。ならいい。', sprite:true, expr:'normal'},
+  {type:'text', name:'', text:'そう言いながらも、視線はまだ少しだけ尖ったままだった。', sprite:false},
+  {type:'text', name:'', text:'言い訳としては正しい。\nでも、本当に欲しかった言葉はそれじゃなかった気がする。', sprite:false},
+  {type:'text', name:'', text:'（あとでちゃんと埋め合わせしよう）', sprite:false},
+  {type:'jump', label:'sports_festival'}
+];
+
+SCENARIO.jealous_love_invite = [
+  {type:'text', name:'CHAR1', text:'今さら入ってったら変だろ。', sprite:true, expr:'sad'},
+  {type:'text', name:'', text:'拗ねたみたいな声に、思わず笑いそうになる。', sprite:false},
+  {type:'text', name:'CHAR1', text:'……でも、そういうことじゃなくて。', sprite:true, expr:'normal'},
+  {type:'text', name:'', text:'続きは言わない。言わないくせに、もう十分なくらい伝わってしまう。', sprite:false},
+  {type:'jump', label:'sports_festival'}
+];
+
+SCENARIO.jealous_love_break = [
+  {type:'text', name:'CHAR1', text:'……は？', sprite:true, expr:'surprise'},
+  {type:'text', name:'', text:'空気が、一瞬で変わった。', sprite:false},
+  {type:'text', name:'CHAR1', text:'関係あるだろ。', sprite:true, expr:'sad'},
+  {type:'text', name:'CHAR1', text:'……俺、お前のことそういう目で見てんのに。', sprite:true, expr:'sad'},
+  {type:'text', name:'', text:'怒っているというより、傷ついている声だった。\n言いすぎたと気づいたときには、もう遅かった。', sprite:false},
+  {type:'jump', label:'sports_festival'}
+];
+
+SCENARIO.jealous_notlove = [
+  {type:'text', name:'', text:'クラスメイトとの会話はただの雑談だった。\nなのに、振り返った先にいたカイくんの視線だけがやけに気になった。', sprite:false},
+  {type:'text', name:'CHAR1', text:'……へぇ。', sprite:true, expr:'normal'},
+  {type:'text', name:'', text:'たったそれだけ。\n何でもない顔をしてるのに、その一言だけが妙に引っかかる。', sprite:false},
+  {type:'choice', choices:[
+    {text:'「どうしたの？」', next:'jealous_notlove_care', affection:1},
+    {text:'「なに？」', next:'jealous_notlove_cold', affection:-1},
+    {text:'「気になるの？」', next:'jealous_notlove_push', affection:1},
+    {text:'「別に関係なくない？」', next:'jealous_notlove_break', affection:-2}
+  ]}
+];
+
+SCENARIO.jealous_notlove_care = [
+  {type:'text', name:'CHAR1', text:'……別に。', sprite:true, expr:'sad'},
+  {type:'text', name:'', text:'言葉はそっけないのに、視線はすぐには逸れなかった。', sprite:false},
+  {type:'text', name:'', text:'ほんの少しだけ距離が近づいた気がする。\nでも、それが何の意味なのかまではまだわからない。', sprite:false},
+  {type:'jump', label:'sports_festival'}
+];
+
+SCENARIO.jealous_notlove_cold = [
+  {type:'text', name:'CHAR1', text:'いや、なんでも。', sprite:true, expr:'normal'},
+  {type:'text', name:'', text:'会話はそれで終わった。\n終わったはずなのに、胸のざわつきだけが消えない。', sprite:false},
+  {type:'text', name:'', text:'（今の、聞き流してよかったのかな）', sprite:false},
+  {type:'jump', label:'sports_festival'}
+];
+
+SCENARIO.jealous_notlove_push = [
+  {type:'text', name:'CHAR1', text:'……気になるわけじゃない。', sprite:true, expr:'surprise'},
+  {type:'text', name:'', text:'否定が早すぎて、逆に少しだけ本音が見えた気がした。', sprite:false},
+  {type:'text', name:'', text:'その一瞬だけ、曖昧な距離の奥にある感情が透けて見えた気がして、息が詰まる。', sprite:false},
+  {type:'jump', label:'sports_festival'}
+];
+
+SCENARIO.jealous_notlove_break = [
+  {type:'text', name:'CHAR1', text:'……そっか。', sprite:true, expr:'sad'},
+  {type:'text', name:'', text:'それ以上は何も言わない。\n何も言わないのに、ちゃんと傷つけたってわかってしまう。', sprite:false},
+  {type:'jump', label:'sports_festival'}
+];
+
+// ═══════════════════════════════════════════════
+// 体育祭
+// ═══════════════════════════════════════════════
+// ══════════════════════════════════════════════
+//  第5章：体育祭
+// ══════════════════════════════════════════════
+SCENARIO.sports_festival = [
+  {type:'location', loc:'athletic_field'},
+  {type:'cg', scene:'sports_festival'},
+  {type:'text', name:'', text:'体育祭当日。\n運動場には色とりどりのハチマキと、あちこちから飛ぶ歓声。', sprite:false},
+  {type:'text', name:'', text:'カイくんはクラスのリレーの選手だった。\nスタートラインで準備体操をする横顔が、妙に真剣で目を離せない。', sprite:false},
+  {type:'text', name:'', text:'（普段あんなに軽い人が、こんな顔をするんだ）', sprite:false},
+  {type:'text', name:'CHAR1', text:'……なに見てんの。', sprite:true, expr:'normal'},
+  {type:'text', name:'', text:'目が合った。完全に見ていた。', sprite:false},
+  {type:'choice', choices:[
+    {text:'「応援しに来たんだよ」', next:'sports_cheer', affection:2},
+    {text:'「別に、たまたま」', next:'sports_tsun', affection:-1},
+    {text:'「かっこいいと思って」と正直に言う', next:'sports_bold', affection:2},
+    {text:'「緊張してそうだから」', next:'sports_worry', affection:-1},
+  ]}
+];
+SCENARIO.sports_cheer = [
+  {type:'affection_change', delta:1},
+  {type:'text', name:'CHAR1', text:'……ありがと。', sprite:true, expr:'smile'},
+  {type:'text', name:'', text:'短く返したのに、耳がほんのり赤い。\n走る前なのに、もう十分だと思ってしまった。', sprite:false},
+  {type:'jump', label:'sports_relay'}
+];
+SCENARIO.sports_tsun = [
+  {type:'text', name:'CHAR1', text:'……嘘つき。', sprite:true, expr:'smile'},
+  {type:'text', name:'', text:'見透かされた気がして、黙るしかない。\nでも、カイくんは責めるでもなくただ前を向いた。', sprite:false},
+  {type:'jump', label:'sports_relay'}
+];
+SCENARIO.sports_bold = [
+  {type:'affection_change', delta:2},
+  {type:'text', name:'CHAR1', text:'……っ、急に何言ってんの！？', sprite:true, expr:'surprise'},
+  {type:'text', name:'', text:'耳まで赤くなってから「余計なこと言うな」と小声でつぶやく。\n（内心：でも笑ってる\u3000絶対嬉しそう）', sprite:false},
+  {type:'jump', label:'sports_relay'}
+];
+SCENARIO.sports_worry = [
+  {type:'text', name:'CHAR1', text:'緊張してないし。', sprite:true, expr:'normal'},
+  {type:'text', name:'', text:'強がっているのに、バトンを持つ手が少しだけ震えていた。\n気づかないふりをした。', sprite:false},
+  {type:'jump', label:'sports_relay'}
+];
+SCENARIO.sports_relay = [
+  {type:'text', name:'', text:'ピストルの音が鳴った。カイくんが走り出す。', sprite:false},
+  {type:'text', name:'', text:'速い。思ってた以上に速い。\n風を割って直線を駆けるその姿から、目が離せなかった。', sprite:false},
+  {type:'text', name:'', text:'ゴールした後、荒い息のまま振り返る。', sprite:false},
+  {type:'text', name:'CHAR1', text:'……見てた？', sprite:true, expr:'normal'},
+  {type:'choice', choices:[
+    {text:'「ずっと見てたよ」', next:'sports_after_good', affection:2},
+    {text:'「もちろん！速かった！」', next:'sports_after_hype', affection:1},
+    {text:'「途中で他見てた」', next:'sports_after_bad', affection:-2},
+  ]}
+];
+SCENARIO.sports_after_good = [
+  {type:'affection_change', delta:1},
+  {type:'text', name:'CHAR1', text:'……そっか。', sprite:true, expr:'smile'},
+  {type:'text', name:'', text:'ただそれだけなのに、カイくんの目の力が少し和らいだ。\n走り切った汗と、照れ隠しの横顔が眩しかった。', sprite:false},
+  {type:'jump', label:'sports_after_party'}
+];
+SCENARIO.sports_after_hype = [
+  {type:'text', name:'CHAR1', text:'え、そう？\u3000まあそれなりに練習したし。', sprite:true, expr:'smile'},
+  {type:'text', name:'', text:'照れているのに格好つけようとして、結果全部顔に出ている。', sprite:false},
+  {type:'jump', label:'sports_after_party'}
+];
+SCENARIO.sports_after_bad = [
+  {type:'affection_change', delta:-1},
+  {type:'text', name:'CHAR1', text:'……そ。', sprite:true, expr:'sad'},
+  {type:'text', name:'', text:'それだけ言って前を向く。\n笑わなかった。ちゃんと傷ついた顔をしていた。', sprite:false},
+  {type:'jump', label:'sports_after_party'}
+];
+SCENARIO.sports_after_party = [
+  {type:'location', loc:'classroom'},
+  {type:'text', name:'', text:'体育祭の片付け。\n教室に残っていたカイくんが声をかけてきた。', sprite:false},
+  {type:'text', name:'CHAR1', text:'……なんか今日、楽しかったな。', sprite:true, expr:'smile'},
+  {type:'choice', choices:[
+    {text:'「私も」とはっきり返す', next:'sports_end_good', affection:1},
+    {text:'「カイくんのリレー、かっこよかったよ」', next:'sports_end_great', affection:2},
+    {text:'「まあまあだったね」', next:'sports_end_cool', affection:-1},
+  ]}
+];
+SCENARIO.sports_end_good = [
+  {type:'affection_change', delta:1},
+  {type:'text', name:'CHAR1', text:'……それ聞けてよかった。', sprite:true, expr:'smile'},
+  {type:'jump', label:'sports_daily'}
+];
+SCENARIO.sports_end_great = [
+  {type:'affection_change', delta:2},
+  {type:'text', name:'CHAR1', text:'……またそういうこと言う。', sprite:true, expr:'surprise'},
+  {type:'text', name:'', text:'耳を赤くしながら、荷物をまとめるふりをする。\nでも手が止まっていた。', sprite:false},
+  {type:'jump', label:'sports_daily'}
+];
+SCENARIO.sports_end_cool = [
+  {type:'affection_change', delta:-1},
+  {type:'text', name:'CHAR1', text:'……まあまあ。', sprite:true, expr:'sad'},
+  {type:'text', name:'', text:'繰り返してから、先に教室を出ていった。', sprite:false},
+  {type:'jump', label:'sports_daily'}
+];
+
+SCENARIO.sports_daily = [
+  {type:'location', loc:'classroom'},
+  {type:'text', name:'', text:'体育祭が終わって、数日後。\n教室のざわめきが少しだけ落ち着いた午後。', sprite:false},
+  {type:'text', name:'CHAR1', text:'……あのさ。', sprite:true, expr:'normal'},
+  {type:'text', name:'CHAR1', text:'体育祭の日さ、声かけてくれてよかった。\nなんか、すごいエネルギーもらった。', sprite:true, expr:'smile'},
+  {type:'text', name:'', text:'（内心：こういうことを素直に言えるようになったんだな、と思った）', sprite:false},
+  {type:'choice', choices:[
+    {text:'「そう言ってもらえると嬉しい」', next:'sports_daily_warm', affection:2},
+    {text:'「カイくんが頑張ってたから」', next:'sports_daily_credit', affection:2},
+    {text:'「別に大したことしてないよ」', next:'sports_daily_cool', affection:-1},
+  ]}
+];
+SCENARIO.sports_daily_warm = [
+  {type:'affection_change', delta:1},
+  {type:'text', name:'CHAR1', text:'……なんか、照れるな。', sprite:true, expr:'smile'},
+  {type:'text', name:'', text:'窓から差し込む午後の光の中で、\nカイくんが少しだけ笑った。', sprite:false},
+  {type:'jump', label:'cultural_festival'}
+];
+SCENARIO.sports_daily_credit = [
+  {type:'affection_change', delta:1},
+  {type:'text', name:'CHAR1', text:'……それ、ちゃんと見てたってこと？', sprite:true, expr:'surprise'},
+  {type:'text', name:'', text:'（内心：見てた。ずっと見てた）', sprite:false},
+  {type:'jump', label:'sports_daily_warm_ext'}
+];
+SCENARIO.sports_daily_cool = [
+  {type:'text', name:'CHAR1', text:'……そっか。', sprite:true, expr:'sad'},
+  {type:'text', name:'', text:'少しだけ間が空いた。\n言い方、悪かったかなと後から気づく。', sprite:false},
+  {type:'jump', label:'cultural_festival'}
+];
+SCENARIO.sports_daily_warm_ext = [
+  {type:'text', name:'CHAR1', text:'そういえば、もうすぐ文化祭だな。', sprite:true, expr:'normal'},
+  {type:'text', name:'CHAR1', text:'……一緒に回れたら、いいな。', sprite:true, expr:'sad'},
+  {type:'text', name:'', text:'（内心：「いいな」って言い方が、なんかずるい）', sprite:false},
+  {type:'jump', label:'cultural_festival'}
+];
+SCENARIO.cultural_festival = [
+  {type:'location', loc:'classroom'},
+  {type:'cg', scene:'cultural_festival'},
+  {type:'text', name:'', text:'文化祭前日。\n教室はごちゃごちゃで、みんな準備に追われている。', sprite:false},
+  {type:'text', name:'', text:'カイくんは飾り付け担当になったはずなのに、脚立の上でぼうっとしていた。', sprite:false},
+  {type:'text', name:'CHAR1', text:'……ちょっと手伝って。届かない。', sprite:true, expr:'sad'},
+  {type:'choice', choices:[
+    {text:'「何を貼るの？」と確認してから手伝う', next:'culture_prep_kind', affection:1},
+    {text:'脚立を支えてあげる', next:'culture_prep_hold', affection:2},
+    {text:'「自分でやりなよ」', next:'culture_prep_cold', affection:-1},
+    {text:'「落ちないでね」と笑う', next:'culture_prep_tease', affection:1},
+  ]}
+];
+SCENARIO.culture_prep_kind = [
+  {type:'text', name:'CHAR1', text:'あそこの端っこ。……ありがと、助かった。', sprite:true, expr:'smile'},
+  {type:'text', name:'', text:'素直に礼を言うのが意外で、少しだけ嬉しくなる。', sprite:false},
+  {type:'jump', label:'culture_day'}
+];
+SCENARIO.culture_prep_hold = [
+  {type:'affection_change', delta:1},
+  {type:'text', name:'CHAR1', text:'……え、なんで脚立押さえてんの。', sprite:true, expr:'surprise'},
+  {type:'text', name:'PLAYER', text:'「落ちたら困るから」', sprite:false},
+  {type:'text', name:'CHAR1', text:'……別に落ちないけど。', sprite:true, expr:'normal'},
+  {type:'text', name:'', text:'そう言いながら、脚立を降りるまでずっと何も言わなかった。\n（内心：なんで心臓がうるさいんだ）', sprite:true, expr:'surprise'},
+  {type:'jump', label:'culture_day'}
+];
+SCENARIO.culture_prep_cold = [
+  {type:'affection_change', delta:-1},
+  {type:'text', name:'CHAR1', text:'……そっか。', sprite:true, expr:'sad'},
+  {type:'text', name:'', text:'小さく返してから、自分で何とかしようとしていた。', sprite:false},
+  {type:'jump', label:'culture_day'}
+];
+SCENARIO.culture_prep_tease = [
+  {type:'text', name:'CHAR1', text:'落ちない！！\u3000ほんとに失礼だな！', sprite:true, expr:'surprise'},
+  {type:'text', name:'', text:'怒りながら脚立を降りてくる。\nその顔が笑っているから、許してもらえたとわかった。', sprite:false},
+  {type:'jump', label:'culture_day'}
+];
+SCENARIO.culture_day = [
+  {type:'location', loc:'classroom'},
+  {type:'text', name:'', text:'文化祭当日。\n廊下には人が溢れて、校舎全体が浮き立っていた。', sprite:false},
+  {type:'text', name:'CHAR1', text:'屋台、一緒に回る？', sprite:true, expr:'smile'},
+  {type:'text', name:'', text:'（内心：軽く誘ったように見えて、返事を待つ目が真剣だった）', sprite:false},
+  {type:'choice', choices:[
+    {text:'「うん、行こう！」', next:'culture_stall_yes', affection:2},
+    {text:'「どこ行くの？」と先に聞く', next:'culture_stall_ask', affection:1},
+    {text:'「クラスの子と回る予定があって……」', next:'culture_stall_busy', affection:-1},
+  ]}
+];
+SCENARIO.culture_stall_yes = [
+  {type:'affection_change', delta:1},
+  {type:'text', name:'CHAR1', text:'……じゃあ行くか。', sprite:true, expr:'smile'},
+  {type:'text', name:'', text:'食べ物の屋台をはしごして、射的で二人ともひどい成績を出して、\n笑いながら端っこのベンチに腰を下ろした。', sprite:false},
+  {type:'text', name:'CHAR1', text:'なんか、文化祭でこんな楽しいの初めてかも。', sprite:true, expr:'smile'},
+  {type:'jump', label:'culture_alone'}
+];
+SCENARIO.culture_stall_ask = [
+  {type:'text', name:'CHAR1', text:'どこでもいい。お前が行きたいとこ。', sprite:true, expr:'normal'},
+  {type:'text', name:'', text:'「どこでもいい」なのに、答えを待ってる。\nその温度差がおかしくて、少しだけ笑ってしまった。', sprite:false},
+  {type:'jump', label:'culture_alone'}
+];
+SCENARIO.culture_stall_busy = [
+  {type:'affection_change', delta:-1},
+  {type:'text', name:'CHAR1', text:'……そっか。そうだよな。', sprite:true, expr:'sad'},
+  {type:'text', name:'', text:'笑っているけど、目だけが笑っていなかった。', sprite:false},
+  {type:'jump', label:'culture_alone'}
+];
+SCENARIO.culture_alone = [
+  {type:'text', name:'', text:'夕方。人が少なくなってきた廊下の端で、カイくんが振り返った。', sprite:false},
+  {type:'text', name:'CHAR1', text:'……ちょっと来て。話したいことある。', sprite:true, expr:'normal'},
+  {type:'text', name:'', text:'人気のない教室の裏へ連れていかれる。\nさっきまでの喧騒が嘘みたいに静かだった。', sprite:false},
+  {type:'text', name:'CHAR1', text:'……俺さ、お前のこと。', sprite:true, expr:'normal'},
+  {type:'text', name:'', text:'言いかけて、止まった。\n廊下の向こうから声がして、カイくんは口を閉じる。', sprite:false},
+  {type:'text', name:'CHAR1', text:'……また今度言う。', sprite:true, expr:'sad'},
+  {type:'choice', choices:[
+    {text:'「待ってるよ」と微笑む', next:'culture_end_wait', affection:2},
+    {text:'「今言ってよ」と引き止める', next:'culture_end_now', affection:1},
+    {text:'「別にいいけど」', next:'culture_end_cold', affection:-1},
+  ]}
+];
+SCENARIO.culture_end_wait = [
+  {type:'affection_change', delta:1},
+  {type:'text', name:'CHAR1', text:'……うん。絶対言う。', sprite:true, expr:'smile'},
+  {type:'text', name:'', text:'その横顔が、夕日の色で少しだけ柔らかく見えた。', sprite:false},
+  {type:'jump', label:'culture_daily'}
+];
+SCENARIO.culture_end_now = [
+  {type:'text', name:'CHAR1', text:'今は……ちゃんとした場所で言いたくて。', sprite:true, expr:'normal'},
+  {type:'text', name:'', text:'「ちゃんとした場所」という言葉が、ずっと頭に残った。', sprite:false},
+  {type:'jump', label:'culture_daily'}
+];
+SCENARIO.culture_end_cold = [
+  {type:'affection_change', delta:-1},
+  {type:'text', name:'CHAR1', text:'……そっか。', sprite:true, expr:'sad'},
+  {type:'text', name:'', text:'少しだけ距離が遠くなった気がした。', sprite:false},
+  {type:'jump', label:'culture_daily'}
+];
+
+SCENARIO.culture_daily = [
+  {type:'location', loc:'hallway'},
+  {type:'text', name:'', text:'文化祭が終わってしばらく。\n日常が戻ってきた廊下で、カイくんが小走りで追いかけてきた。', sprite:false},
+  {type:'text', name:'CHAR1', text:'ちょっと待って。', sprite:true, expr:'normal'},
+  {type:'text', name:'', text:'少し息が上がっている。\nわざわざ追いかけてくるのは珍しかった。', sprite:false},
+  {type:'text', name:'CHAR1', text:'文化祭、一緒に回れてよかった。\n……また、どこか行こう。', sprite:true, expr:'normal'},
+  {type:'text', name:'', text:'（内心：「また」って言った。\nまた、一緒にいることを考えてる）', sprite:false},
+  {type:'choice', choices:[
+    {text:'「うん、行こう」と即答する', next:'culture_daily_yes', affection:2},
+    {text:'「どこ行きたいの？」と聞く', next:'culture_daily_ask', affection:1},
+    {text:'「今度ね」と流す', next:'culture_daily_cool', affection:-1},
+  ]}
+];
+SCENARIO.culture_daily_yes = [
+  {type:'affection_change', delta:1},
+  {type:'text', name:'CHAR1', text:'……決まり。じゃあ考えとく。', sprite:true, expr:'smile'},
+  {type:'text', name:'', text:'嬉しそうなのを隠しきれていない横顔を見て、\n自分まで嬉しくなってしまった。', sprite:false},
+  {type:'jump', label:'culture_daily_trip_hint'}
+];
+SCENARIO.culture_daily_ask = [
+  {type:'text', name:'CHAR1', text:'どこでもいい……お前が行きたいとこ。', sprite:true, expr:'smile'},
+  {type:'text', name:'', text:'（内心：全部委ねてくる。\n信頼されてるのか、単純なのか）', sprite:false},
+  {type:'jump', label:'culture_daily_trip_hint'}
+];
+SCENARIO.culture_daily_cool = [
+  {type:'affection_change', delta:-1},
+  {type:'text', name:'CHAR1', text:'……今度、ね。', sprite:true, expr:'sad'},
+  {type:'text', name:'', text:'繰り返した「今度」は、\n少し遠い場所に落ちていった。', sprite:false},
+  {type:'jump', label:'culture_daily_trip_hint'}
+];
+SCENARIO.culture_daily_trip_hint = [
+  {type:'text', name:'', text:'そういえば、来月には修学旅行がある。\n同じクラスで、同じ班になる可能性もある。', sprite:false},
+  {type:'text', name:'CHAR1', text:'修学旅行、同じ班だといいな。', sprite:true, expr:'normal'},
+  {type:'text', name:'', text:'（内心：さらっと言ったくせに、少しだけ期待した目をしていた）', sprite:false},
+  {type:'jump', label:'trip_event'}
+];
+SCENARIO.trip_event = [
+  {type:'location', loc:'trip_bus'},
+  {type:'cg', scene:'trip_night'},
+  {type:'text', name:'', text:'修学旅行。\nバスに乗り込むと、カイくんがすでに窓側に座っていた。', sprite:false},
+  {type:'text', name:'CHAR1', text:'……隣、誰も来ないといいんだけど。', sprite:true, expr:'normal'},
+  {type:'text', name:'', text:'独り言のように言っているけど、こちらを向いている。', sprite:false},
+  {type:'choice', choices:[
+    {text:'「じゃあ私が座ろうか」', next:'trip_bus_sit', affection:2},
+    {text:'「そんなに人嫌いなの？」', next:'trip_bus_tease', affection:1},
+    {text:'「遠慮しとく」', next:'trip_bus_no', affection:-1},
+  ]}
+];
+SCENARIO.trip_bus_sit = [
+  {type:'affection_change', delta:1},
+  {type:'text', name:'CHAR1', text:'……え、あ、うん。', sprite:true, expr:'surprise'},
+  {type:'text', name:'', text:'慌てた顔で荷物をずらして席を開けてくれた。\n隣にいる事実だけで、なんとなく落ち着いた。', sprite:false},
+  {type:'jump', label:'trip_sightseeing'}
+];
+SCENARIO.trip_bus_tease = [
+  {type:'text', name:'CHAR1', text:'そういう意味じゃなくて。', sprite:true, expr:'normal'},
+  {type:'text', name:'CHAR1', text:'……特定の人なら来ても別にいい。', sprite:true, expr:'normal'},
+  {type:'text', name:'', text:'（内心：今の、私のことだよね？）', sprite:false},
+  {type:'jump', label:'trip_sightseeing'}
+];
+SCENARIO.trip_bus_no = [
+  {type:'affection_change', delta:-1},
+  {type:'text', name:'CHAR1', text:'……そっか。', sprite:true, expr:'sad'},
+  {type:'text', name:'', text:'バスが出発するまでの沈黙が、妙に長かった。', sprite:false},
+  {type:'jump', label:'trip_sightseeing'}
+];
+SCENARIO.trip_sightseeing = [
+  {type:'text', name:'', text:'観光地を班で回る時間。\nカイくんと気づいたら二人並んで歩いていた。', sprite:false},
+  {type:'text', name:'CHAR1', text:'写真撮って。', sprite:true, expr:'normal'},
+  {type:'text', name:'', text:'スマホを差し出してくる。\nファインダー越しに見ると、普段より少し柔らかい顔をしていた。', sprite:false},
+  {type:'choice', choices:[
+    {text:'「一緒に撮ろう」と提案する', next:'trip_photo_together', affection:2},
+    {text:'普通に撮ってあげる', next:'trip_photo_normal', affection:1},
+    {text:'「自撮りしなよ」', next:'trip_photo_cold', affection:-1},
+  ]}
+];
+SCENARIO.trip_photo_together = [
+  {type:'affection_change', delta:2},
+  {type:'text', name:'CHAR1', text:'……え。', sprite:true, expr:'surprise'},
+  {type:'text', name:'', text:'少しだけ固まってから、こちら側へ来た。\n肩が触れるほど近づいて、シャッターを押す。', sprite:false},
+  {type:'text', name:'CHAR1', text:'……なんか、変な写真になってそう。', sprite:true, expr:'smile'},
+  {type:'text', name:'', text:'見てみると、カイくんがこっちを向いていた。\n（内心：これ、絶対消えないやつだ）', sprite:false},
+  {type:'jump', label:'trip_night_start'}
+];
+SCENARIO.trip_photo_normal = [
+  {type:'text', name:'CHAR1', text:'……ありがと。', sprite:true, expr:'normal'},
+  {type:'text', name:'', text:'画面を確認してから小さく笑った。\n「いい感じ」と言いながら、なぜかこちらを見た。', sprite:false},
+  {type:'jump', label:'trip_night_start'}
+];
+SCENARIO.trip_photo_cold = [
+  {type:'affection_change', delta:-1},
+  {type:'text', name:'CHAR1', text:'……そうだな。', sprite:true, expr:'sad'},
+  {type:'text', name:'', text:'スマホを引っ込めて、自撮りをしようとしていた。\n意地悪な言い方だったかもしれない。', sprite:false},
+  {type:'jump', label:'trip_night_start'}
+];
+SCENARIO.trip_night_start = [
+  {type:'text', name:'', text:'夜。\n消灯時間を過ぎた廊下は、昼間が嘘みたいに静かだった。', sprite:false},
+  {type:'text', name:'', text:'振り返ると、カイくんが少しだけ息を切らして立っていた。', sprite:false},
+  {type:'text', name:'CHAR1', text:'……ちょっとだけ、ここにいていい？', sprite:true, expr:'normal'},
+  {type:'branch', cond:'loveFlag', ifTrue:'trip_love', ifFalse:'trip_notlove'}
+];
+SCENARIO.trip_love = [
+  {type:'location', loc:'trip_hallway'},
+  {type:'text', name:'', text:'恋人になった今でも、こういう時間にはまだ照れる。\n（こんな時間に二人きりでいるのは、反則だ）', sprite:false},
+  {type:'choice', choices:[
+    {text:'「一緒にいる」', next:'trip_love_stay', affection:2},
+    {text:'「少しだけなら」', next:'trip_love_little', affection:1},
+    {text:'「もう戻ろっか」', next:'trip_love_end', affection:-1},
+    {text:'「正直めんどくさい」', next:'trip_love_break', affection:-3}
+  ]}
+];
+SCENARIO.trip_love_stay = [
+  {type:'affection_change', delta:1},
+  {type:'text', name:'CHAR1', text:'……ありがと。', sprite:true, expr:'smile'},
+  {type:'text', name:'', text:'壁にもたれるみたいに並んで座る。\n触れてはいないのに、体温だけははっきりと感じた。', sprite:false},
+  {type:'text', name:'CHAR1', text:'今日さ。お前が他のやつと話してただろ。\n……ちょっとだけ、嫌だった。', sprite:true, expr:'sad'},
+  {type:'text', name:'CHAR1', text:'束縛とかじゃないけど。なんか、取られそうで。', sprite:true, expr:'sad'},
+  {type:'text', name:'', text:'そんなふうに思ってくれていることが、うれしくて、苦しいくらい愛おしい。', sprite:false},
+  {type:'jump', label:'trip_day_free'}
+];
+SCENARIO.trip_love_little = [
+  {type:'text', name:'CHAR1', text:'それでも十分。', sprite:true, expr:'smile'},
+  {type:'text', name:'', text:'少しだけのはずなのに、夜は思っていたより長くやさしかった。', sprite:false},
+  {type:'text', name:'CHAR1', text:'……こういう時間、好きかも。', sprite:true, expr:'smile'},
+  {type:'jump', label:'trip_day_free'}
+];
+SCENARIO.trip_love_end = [
+  {type:'text', name:'CHAR1', text:'……そっか。', sprite:true, expr:'sad'},
+  {type:'text', name:'', text:'恋人でも、タイミングを間違える日はある。\n少し離れた足音が、夜の静けさの中でやけに大きく響く。', sprite:false},
+  {type:'jump', label:'trip_day_free'}
+];
+SCENARIO.trip_love_break = [
+  {type:'affection_change', delta:-2},
+  {type:'text', name:'CHAR1', text:'……そっか。', sprite:true, expr:'sad'},
+  {type:'text', name:'', text:'たった一言で、やわらかかった空気が全部壊れたのがわかった。', sprite:false},
+  {type:'jump', label:'trip_day_free'}
+];
+SCENARIO.trip_notlove = [
+  {type:'location', loc:'trip_hallway'},
+  {type:'text', name:'CHAR1', text:'……眠れなくて。', sprite:true, expr:'sad'},
+  {type:'text', name:'', text:'どうしてここにいるのか、聞かなくても少しわかってしまう。', sprite:false},
+  {type:'choice', choices:[
+    {text:'「少し話す？」', next:'trip_notlove_talk', affection:2},
+    {text:'「どうしたの？」', next:'trip_notlove_care', affection:1},
+    {text:'「もう寝たら？」', next:'trip_notlove_cold', affection:-1},
+    {text:'「正直めんどくさい」', next:'trip_notlove_break', affection:-3}
+  ]}
+];
+SCENARIO.trip_notlove_talk = [
+  {type:'affection_change', delta:1},
+  {type:'text', name:'CHAR1', text:'……うん。もう少しだけ。', sprite:true, expr:'smile'},
+  {type:'text', name:'CHAR1', text:'今日、お前が他のやつと話してんの見てさ。\n……なんか、変な気分になった。', sprite:true, expr:'sad'},
+  {type:'text', name:'', text:'曖昧だった距離が、少しだけ確かなものに変わる夜だった。', sprite:false},
+  {type:'jump', label:'trip_day_free'}
+];
+SCENARIO.trip_notlove_care = [
+  {type:'text', name:'CHAR1', text:'別に……ちょっと落ち着かなくて。', sprite:true, expr:'sad'},
+  {type:'text', name:'', text:'本音には届かない。でも届こうとする気持ちは前より近かった。', sprite:false},
+  {type:'jump', label:'trip_day_free'}
+];
+SCENARIO.trip_notlove_cold = [
+  {type:'affection_change', delta:-1},
+  {type:'text', name:'CHAR1', text:'……そうだな。', sprite:true, expr:'normal'},
+  {type:'text', name:'', text:'大事な何かを、また少し遠ざけた気がした。', sprite:false},
+  {type:'jump', label:'trip_day_free'}
+];
+SCENARIO.trip_notlove_break = [
+  {type:'affection_change', delta:-2},
+  {type:'text', name:'CHAR1', text:'……そう。', sprite:true, expr:'sad'},
+  {type:'text', name:'', text:'今度こそ何かが完全に切れた気がして、呼び止める声も出ない。', sprite:false},
+  {type:'jump', label:'trip_day_free'}
+];
+SCENARIO.trip_day_free = [
+  {type:'location', loc:'trip_sightseeing'},
+  {type:'text', name:'', text:'修学旅行2日目、自由行動の時間。\n観光地を歩いていると、カイくんが追いついてきた。', sprite:false},
+  {type:'text', name:'CHAR1', text:'……どこ行く？', sprite:true, expr:'normal'},
+  {type:'choice', choices:[
+    {text:'「カイくんに任せる」', next:'trip_free_follow', affection:1},
+    {text:'「行きたいとこがある、ついてきて」', next:'trip_free_lead', affection:2},
+    {text:'「別行動でもよくない？」', next:'trip_free_apart', affection:-2},
+  ]}
+];
+SCENARIO.trip_free_follow = [
+  {type:'text', name:'CHAR1', text:'俺が？\n……わかった、じゃあ任せろ。', sprite:true, expr:'smile'},
+  {type:'text', name:'', text:'少し嬉しそうな顔をして歩き出した。\n何かを探すみたいに先に立って歩く。', sprite:false},
+  {type:'text', name:'CHAR1', text:'……ここ。なんか、お前が好きそうだと思って。', sprite:true, expr:'normal'},
+  {type:'text', name:'', text:'連れてこられたのは、小さな神社だった。\n静かで、二人きりで、時間がゆっくり流れた。', sprite:false},
+  {type:'jump', label:'trip_morning'}
+];
+SCENARIO.trip_free_lead = [
+  {type:'affection_change', delta:1},
+  {type:'text', name:'CHAR1', text:'おう、ついてく。', sprite:true, expr:'smile'},
+  {type:'text', name:'', text:'並んで歩く。いつもより歩幅がゆっくりで、\nお互いに合わせているせいだと気づいた。', sprite:false},
+  {type:'text', name:'CHAR1', text:'……旅行って、誰と来るかで全然違うな。', sprite:true, expr:'normal'},
+  {type:'jump', label:'trip_morning'}
+];
+SCENARIO.trip_free_apart = [
+  {type:'affection_change', delta:-1},
+  {type:'text', name:'CHAR1', text:'……あ、そっか。うん、わかった。', sprite:true, expr:'sad'},
+  {type:'text', name:'', text:'引き止めるでもなく、人混みに消えていく。\nその背中が見えなくなるまで、目が離せなかった。', sprite:false},
+  {type:'jump', label:'trip_morning'}
+];
+SCENARIO.trip_morning = [
+  {type:'location', loc:'trip_morning'},
+  {type:'text', name:'', text:'修学旅行最終日の朝。\nカイくんが手を振った。', sprite:false},
+  {type:'text', name:'CHAR1', text:'……今回、一緒で良かった。', sprite:true, expr:'smile'},
+  {type:'text', name:'', text:'サラッと言ったくせに、目は逸らしていた。', sprite:false},
+  {type:'choice', choices:[
+    {text:'「私も」と返す', next:'trip_end_good', affection:2},
+    {text:'「また来ようよ」と笑う', next:'trip_end_future', affection:1},
+    {text:'「まあね」と照れ隠し', next:'trip_end_tsun', affection:1},
+    {text:'「そう？」と流す', next:'trip_end_cold', affection:-1},
+  ]}
+];
+SCENARIO.trip_end_good = [
+  {type:'affection_change', delta:1},
+  {type:'text', name:'CHAR1', text:'……良かった。', sprite:true, expr:'smile'},
+  {type:'jump', label:'resolve_afterstory'}
+];
+SCENARIO.trip_end_future = [
+  {type:'text', name:'CHAR1', text:'……また来れるかな。', sprite:true, expr:'normal'},
+  {type:'jump', label:'resolve_afterstory'}
+];
+SCENARIO.trip_end_tsun = [
+  {type:'text', name:'CHAR1', text:'なんだよ「まあね」って。', sprite:true, expr:'surprise'},
+  {type:'text', name:'', text:'笑いながら少しだけ肩をぶつけてきた。', sprite:false},
+  {type:'jump', label:'resolve_afterstory'}
+];
+SCENARIO.trip_end_cold = [
+  {type:'affection_change', delta:-1},
+  {type:'text', name:'CHAR1', text:'……そか。', sprite:true, expr:'sad'},
+  {type:'text', name:'', text:'帰り道は、行きよりずっと長く感じた。', sprite:false},
+  {type:'jump', label:'resolve_afterstory'}
+];
+
+SCENARIO.resolve_afterstory = [
+  {type:'location', loc:'street_evening'},
+  {type:'branch', cond:'loveFlag', ifTrue:'resolve_love_end', ifFalse:'resolve_notlove_end'}
+];
+SCENARIO.resolve_love_end = [
+  {type:'cond_jump', minAff:32, ifTrue:'ending_true_love', ifFalse:'resolve_love_mid'}
+];
+SCENARIO.resolve_love_mid = [
+  {type:'cond_jump', minAff:18, ifTrue:'ending_love_crack', ifFalse:'ending_bad_love'}
+];
+SCENARIO.resolve_notlove_end = [
+  {type:'cond_jump', minAff:22, ifTrue:'ending_unspoken', ifFalse:'resolve_notlove_low'}
+];
+SCENARIO.resolve_notlove_low = [
+  {type:'cond_jump', minAff:16, ifTrue:'ending_apart', ifFalse:'ending_bad_cold'}
+];
+
+SCENARIO.ending_true_love = [
+  {type:'cg', scene:'ending_true_love'},
+  {type:'text', name:'', text:'帰り道。いつもより少しゆっくり歩く。', sprite:false},
+  {type:'text', name:'CHAR1', text:'最初さ、ここまで来ると思ってなかった。', sprite:true, expr:'smile'},
+  {type:'text', name:'', text:'笑ってるのに、どこか照れてる。\nその表情が、出会った頃よりずっとやわらかい。', sprite:false},
+  {type:'text', name:'CHAR1', text:'……好きになりすぎて困る。', sprite:true, expr:'sad'},
+  {type:'text', name:'CHAR1', text:'離れんなよ。俺、普通に無理だから。', sprite:true, expr:'smile'},
+  {type:'text', name:'', text:'自然に手を引かれる。\n選んできた言葉も、躊躇った沈黙も、全部この温度に繋がっていた。\n\n\u2764 TRUE LOVE END \u2764\nおめでとう！最高のエンディングです', sprite:false}
+];
+SCENARIO.ending_love_crack = [
+  {type:'cg', scene:'ending_love_crack'},
+  {type:'text', name:'', text:'同じ帰り道。なのに、前みたいに自然に隣へ寄れない。', sprite:false},
+  {type:'text', name:'CHAR1', text:'最近さ……なんか、ズレてきてない？', sprite:true, expr:'sad'},
+  {type:'text', name:'', text:'否定したいのに、できない。\n好きなのは変わってないのに、傷つけた言葉だけが残っていた。', sprite:false},
+  {type:'text', name:'CHAR1', text:'このままでいいのか、わかんねぇ。', sprite:true, expr:'sad'},
+  {type:'text', name:'', text:'手はもう繋がらない。\n\n\u1f494 CRACKED LOVE END\n選択を見直すと、より良い結末へ辿り着けるかも', sprite:false}
+];
+SCENARIO.ending_bad_love = [
+  {type:'cg', scene:'ending_bad_love'},
+  {type:'text', name:'', text:'名前だけ恋人の、冷たい季節。', sprite:false},
+  {type:'text', name:'CHAR1', text:'……俺たち、なんか違くない？', sprite:true, expr:'sad'},
+  {type:'text', name:'', text:'ずっと感じていたことを、やっと口にした。\nでも、その言葉を受け止める強さが、今の自分にはなかった。', sprite:false},
+  {type:'text', name:'CHAR1', text:'好きじゃなくなったとかじゃないけど。\n……一緒にいて、苦しい。', sprite:true, expr:'sad'},
+  {type:'text', name:'', text:'言い訳しようとして、言葉が出なかった。\n傷つけた数だけ、ちゃんと傷ついていたんだと気づく。\n\nBAD END\n大切な言葉を選んでいれば、ここには来なかった', sprite:false}
+];
+SCENARIO.ending_unspoken = [
+  {type:'cg', scene:'ending_unspoken'},
+  {type:'text', name:'', text:'帰り道。前と同じ距離なのに、前とは違う空気がある。', sprite:false},
+  {type:'text', name:'CHAR1', text:'今さらだけどさ。', sprite:true, expr:'normal'},
+  {type:'text', name:'CHAR1', text:'お前のこと、普通に好きだわ。', sprite:true, expr:'sad'},
+  {type:'text', name:'', text:'遅い。全部。でも、その一言はちゃんと届く。\n終わりじゃない。名前のない関係のまま、それでも前に進もうとしていた。\n\nUNSPOKEN END\nもう少し好感度を上げると告白ルートへ進めます', sprite:false}
+];
+SCENARIO.ending_apart = [
+  {type:'cg', scene:'ending_apart'},
+  {type:'text', name:'', text:'廊下ですれ違う。目が合う。', sprite:false},
+  {type:'text', name:'', text:'でも、何も言えない。何も言われない。\n前はあんなに近かったのに、今はもう手の届かない距離だった。', sprite:false},
+  {type:'text', name:'', text:'選ばなかった言葉も、間違えた一言も、全部ここへ続いていた。\n\nAPART END\n選択を振り返ると、分かれ道が見えてくる', sprite:false}
+];
+SCENARIO.ending_bad_cold = [
+  {type:'cg', scene:'ending_bad_cold'},
+  {type:'text', name:'', text:'ある日、カイくんから短いLINEが来た。', sprite:false},
+  {type:'text', name:'CHAR1', text:'「ちょっと距離置かせて」', sprite:true, expr:'sad'},
+  {type:'text', name:'', text:'それだけだった。理由は書いていない。\nでも、わかってしまう。', sprite:false},
+  {type:'text', name:'', text:'何度も傷つけた。\n笑ってくれていたのに、ちゃんと積み重なっていた。', sprite:false},
+  {type:'text', name:'', text:'既読がついて、返信はなかった。\n\nBAD END \n言葉は、取り消せない', sprite:false}
+];
+
+
+</script>
+</body>
+</html>
