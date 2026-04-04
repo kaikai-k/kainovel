@@ -473,6 +473,17 @@ window.kaiFirebase = {
 </script>
 
 <script>
+function getRtdbRestUrls(baseUrl){
+  const normalized=String(baseUrl||'').replace(/\/+$/,'');
+  if(!normalized) return [];
+  const urls=[normalized];
+  if(normalized.includes('firebaseio.com')){
+    urls.push(normalized.replace('firebaseio.com','firebasedatabase.app'));
+  }else if(normalized.includes('firebasedatabase.app')){
+    urls.push(normalized.replace('firebasedatabase.app','firebaseio.com'));
+  }
+  return [...new Set(urls)].map(u=>`${u}/kainovel-settings.json`);
+}
 /* ═══════════════════════════════════════════════════════════════
    LOCATIONS CONFIG
    各場所の ID・表示名・デフォルト背景色を定義します。
@@ -1969,18 +1980,26 @@ function applySharedSettings(parsed){
 }
 async function saveSettingsToServer(){
   const payload=buildSharePayload();
+  const errors=[];
   try{
     if(window.kaiFirebase?.ready){
       try{
         await window.kaiFirebase.saveSettings(payload);
         alert('Firebaseへ保存しました。');
         return;
-      }catch(_sdkErr){
-        const restUrl=`${String(window.kaiFirebase.rtdbUrl||'').replace(/\/+$/,'')}/kainovel-settings.json`;
-        const restRes=await fetch(restUrl,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
-        if(restRes.ok){
-          alert('Firebaseへ保存しました。');
-          return;
+      }catch(sdkErr){
+        errors.push(`SDK:${sdkErr?.message||sdkErr}`);
+        for(const restUrl of getRtdbRestUrls(window.kaiFirebase.rtdbUrl)){
+          try{
+            const restRes=await fetch(restUrl,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+            if(restRes.ok){
+              alert('Firebaseへ保存しました。');
+              return;
+            }
+            errors.push(`REST:${restRes.status} ${restUrl}`);
+          }catch(restErr){
+            errors.push(`REST:${restErr?.message||restErr}`);
+          }
         }
       }
     }
@@ -1988,7 +2007,8 @@ async function saveSettingsToServer(){
     if(!res.ok) throw new Error('save failed');
     alert('サーバーへ保存しました。');
   }catch(err){
-    alert('保存に失敗しました。Firebase設定または server.js 起動を確認してください。');
+    errors.push(`API:${err?.message||err}`);
+    alert('保存に失敗しました。Firebase Realtime Database の rules と databaseURL を確認してください。\n'+errors.join('\n'));
   }
 }
 async function loadSettingsFromServer(){
@@ -1998,9 +2018,13 @@ async function loadSettingsFromServer(){
       try{
         parsed=await window.kaiFirebase.loadSettings();
       }catch(_sdkErr){
-        const restUrl=`${String(window.kaiFirebase.rtdbUrl||'').replace(/\/+$/,'')}/kainovel-settings.json`;
-        const restRes=await fetch(restUrl);
-        if(restRes.ok) parsed=await restRes.json();
+        for(const restUrl of getRtdbRestUrls(window.kaiFirebase.rtdbUrl)){
+          const restRes=await fetch(restUrl);
+          if(restRes.ok){
+            parsed=await restRes.json();
+            break;
+          }
+        }
       }
     }else{
       const res=await fetch('/api/settings');
