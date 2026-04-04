@@ -349,7 +349,7 @@ body{font-family:'Noto Sans JP',sans-serif;background:#111;color:var(--text);}
 <div id="settings-modal" class="mo hidden">
   <div class="mb">
     <h2>設定</h2>
-    <div class="ss" style="background:var(--pink-ll);border:1.5px solid var(--pink-l);border-radius:12px;padding:12px;">
+    <div class="ss" id="image-admin-lock" style="background:var(--pink-ll);border:1.5px solid var(--pink-l);border-radius:12px;padding:12px;">
       <label class="sl">🔒 画像アセット編集ロック（管理者専用）</label>
       <div class="hint" style="margin-bottom:8px;">背景/立ち絵/CG の変更は管理者のみ可能です。音設定（BGM/SE）は一般ページでも変更できます。</div>
       <div class="sx">
@@ -377,11 +377,16 @@ body{font-family:'Noto Sans JP',sans-serif;background:#111;color:var(--text);}
       <button class="bp" type="button" onclick="document.getElementById('import-settings-file').click()">設定を読み込む</button>
       <input id="import-settings-file" type="file" accept="application/json" style="display:none" onchange="importSharedSettings(event)">
     </div>
+    <div class="sx" style="margin-top:8px">
+      <button class="bc" type="button" onclick="loadSettingsFromServer()">サーバーから反映</button>
+      <button class="bp" type="button" onclick="saveSettingsToServer()">サーバーへ保存</button>
+    </div>
 
     <h3>🎼 シーン別BGM設定</h3>
     <div class="hint" style="margin-bottom:10px">場所ごとにBGMを設定できます。未設定の場所では上の「BGM（ループ再生）」が流れます。</div>
     <div id="scene-bgm-settings-container"></div>
 
+    <div id="image-settings-area">
     <h3>🧷 デフォルト背景・立ち絵設定</h3>
     <div class="hint" style="margin-bottom:10px">場所ごとの指定がない場合に使う背景と立ち絵です</div>
     <div class="loc-block">
@@ -419,6 +424,7 @@ body{font-family:'Noto Sans JP',sans-serif;background:#111;color:var(--text);}
     <div class="hint" style="margin-bottom:10px">各シーンで自動表示されるCG画像を登録します。画像を登録するとそのシーンで自動的に全画面表示されます。未登録のシーンはスキップされます。</div>
     <div class="hint" style="margin-bottom:14px;line-height:1.7">例：初対面でぶつかる→「初対面・ぶつかるシーン」、席替え→「席替え・近くの席シーン」、LINE交換→「LINE交換シーン」、夏祭り後の気まずい廊下→「夏祭り後の廊下シーン」、告白の返事前→「告白の返事シーン」が自動表示されます。</div>
     <div id="cg-settings-container"></div>
+    </div>
 
     <div class="mf">
       <button class="bc" onclick="cm('settings-modal')">キャンセル</button>
@@ -545,7 +551,7 @@ PLACE_PRESETS.forEach(l => {
   sceneBgmData[l.id] = { url:null, name:'' };
 });
 const ADMIN_ENTRY_KEY = 'kai_admin_mode';
-const OWNER_ASSET_CODE = 'SET-YOUR-SECRET-CODE';
+const OWNER_ASSET_CODE = 'kaikai';
 let assetAdminUnlocked = false;
 
 function isCustomPlace(placeId){
@@ -562,7 +568,14 @@ function refreshSettingsAccess(){
   if(gameBtn) gameBtn.style.display = show ? 'inline-flex' : 'none';
 }
 function canEditAssets(){
-  return assetAdminUnlocked;
+  return assetAdminUnlocked || isAdminMode();
+}
+function toggleImageSettingsVisibility(){
+  const showImageSettings=isAdminMode();
+  const lock=document.getElementById('image-admin-lock');
+  const area=document.getElementById('image-settings-area');
+  if(lock) lock.style.display=showImageSettings?'block':'none';
+  if(area) area.style.display=showImageSettings?'block':'none';
 }
 function guardAssetEdit(){
   if(canEditAssets()) return true;
@@ -1807,6 +1820,7 @@ function previewPlace(placeId){
 
 function openSettings(){
   buildSettingsUI();
+  toggleImageSettingsVisibility();
   document.getElementById('s-title').value=G.gameTitle;
   document.getElementById('s-cname').value=G.char1Name;
   document.getElementById('s-bv').value=Math.round(G.bgmVol*100);
@@ -1864,66 +1878,97 @@ function exportSharedSettings(){
   a.click();
   URL.revokeObjectURL(a.href);
 }
+function applySharedSettings(parsed){
+  if(parsed.locData){
+    PLACE_PRESETS.forEach(loc=>{
+      const d=parsed.locData[loc.id];
+      if(!d) return;
+      locData[loc.id].bg=d.bg||null;
+      locData[loc.id].sprites={
+        normal:d.sprites?.normal||null,
+        smile:d.sprites?.smile||null,
+        surprise:d.sprites?.surprise||null,
+        sad:d.sprites?.sad||null
+      };
+    });
+  }
+  if(parsed.defaultAssets){
+    defaultAssets.bg=parsed.defaultAssets.bg||null;
+    defaultAssets.sprites={
+      normal:parsed.defaultAssets.sprites?.normal||null,
+      smile:parsed.defaultAssets.sprites?.smile||null,
+      surprise:parsed.defaultAssets.sprites?.surprise||null,
+      sad:parsed.defaultAssets.sprites?.sad||null
+    };
+  }
+  if(parsed.cgData){
+    CG_SCENES.forEach(scene=>{
+      const d=parsed.cgData[scene.id];
+      if(!d) return;
+      cgData[scene.id]={url:d.url||null,name:d.name||''};
+    });
+  }
+  if(parsed.sceneBgmData){
+    PLACE_PRESETS.forEach(loc=>{
+      const d=parsed.sceneBgmData[loc.id];
+      if(!d) return;
+      sceneBgmData[loc.id]={url:d.url||null,name:d.name||''};
+    });
+  }
+  if(parsed.placeNames){
+    PLACE_PRESETS.forEach(place=>{
+      if(isCustomPlace(place.id) && parsed.placeNames[place.id]) place.name=parsed.placeNames[place.id];
+    });
+  }
+  if(parsed.settings){
+    G.char1Name=parsed.settings.char1Name||G.char1Name;
+    G.gameTitle=parsed.settings.gameTitle||G.gameTitle;
+    G.bgmVol=typeof parsed.settings.bgmVol==='number'?parsed.settings.bgmVol:G.bgmVol;
+    G.seVol=typeof parsed.settings.seVol==='number'?parsed.settings.seVol:G.seVol;
+    G.textSpeed=parsed.settings.textSpeed||G.textSpeed;
+    G.bgmUrl=parsed.settings.bgmUrl||null;
+    G.seUrl=parsed.settings.seUrl||null;
+    G.choiceSeUrl=parsed.settings.choiceSeUrl||null;
+    G.nextSeUrl=parsed.settings.nextSeUrl||null;
+  }
+}
+async function saveSettingsToServer(){
+  try{
+    const res=await fetch('/api/settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(buildSharePayload())});
+    if(!res.ok) throw new Error('save failed');
+    alert('サーバーへ保存しました。');
+  }catch(err){
+    alert('サーバー保存に失敗しました。server.js で起動しているか確認してください。');
+  }
+}
+async function loadSettingsFromServer(){
+  try{
+    const res=await fetch('/api/settings');
+    if(!res.ok) throw new Error('load failed');
+    const parsed=await res.json();
+    applySharedSettings(parsed);
+    document.getElementById('logo-txt').textContent=G.gameTitle;
+    buildSettingsUI();
+    toggleImageSettingsVisibility();
+    updateAudioDeleteButtons();
+    applyBgForCurrentLoc();
+    playSceneBgm();
+    await savePersistentData();
+    alert('サーバー設定を反映しました。');
+  }catch(err){
+    // server未使用時は静かにスキップ
+  }
+}
 async function importSharedSettings(e){
   const f=e.target.files?.[0];
   if(!f) return;
   try{
     const raw=await f.text();
     const parsed=JSON.parse(raw);
-    if(parsed.locData){
-      PLACE_PRESETS.forEach(loc=>{
-        const d=parsed.locData[loc.id];
-        if(!d) return;
-        locData[loc.id].bg=d.bg||null;
-        locData[loc.id].sprites={
-          normal:d.sprites?.normal||null,
-          smile:d.sprites?.smile||null,
-          surprise:d.sprites?.surprise||null,
-          sad:d.sprites?.sad||null
-        };
-      });
-    }
-    if(parsed.defaultAssets){
-      defaultAssets.bg=parsed.defaultAssets.bg||null;
-      defaultAssets.sprites={
-        normal:parsed.defaultAssets.sprites?.normal||null,
-        smile:parsed.defaultAssets.sprites?.smile||null,
-        surprise:parsed.defaultAssets.sprites?.surprise||null,
-        sad:parsed.defaultAssets.sprites?.sad||null
-      };
-    }
-    if(parsed.cgData){
-      CG_SCENES.forEach(scene=>{
-        const d=parsed.cgData[scene.id];
-        if(!d) return;
-        cgData[scene.id]={url:d.url||null,name:d.name||''};
-      });
-    }
-    if(parsed.sceneBgmData){
-      PLACE_PRESETS.forEach(loc=>{
-        const d=parsed.sceneBgmData[loc.id];
-        if(!d) return;
-        sceneBgmData[loc.id]={url:d.url||null,name:d.name||''};
-      });
-    }
-    if(parsed.placeNames){
-      PLACE_PRESETS.forEach(place=>{
-        if(isCustomPlace(place.id) && parsed.placeNames[place.id]) place.name=parsed.placeNames[place.id];
-      });
-    }
-    if(parsed.settings){
-      G.char1Name=parsed.settings.char1Name||G.char1Name;
-      G.gameTitle=parsed.settings.gameTitle||G.gameTitle;
-      G.bgmVol=typeof parsed.settings.bgmVol==='number'?parsed.settings.bgmVol:G.bgmVol;
-      G.seVol=typeof parsed.settings.seVol==='number'?parsed.settings.seVol:G.seVol;
-      G.textSpeed=parsed.settings.textSpeed||G.textSpeed;
-      G.bgmUrl=parsed.settings.bgmUrl||null;
-      G.seUrl=parsed.settings.seUrl||null;
-      G.choiceSeUrl=parsed.settings.choiceSeUrl||null;
-      G.nextSeUrl=parsed.settings.nextSeUrl||null;
-    }
+    applySharedSettings(parsed);
     document.getElementById('logo-txt').textContent=G.gameTitle;
     buildSettingsUI();
+    toggleImageSettingsVisibility();
     updateAudioDeleteButtons();
     applyBgForCurrentLoc();
     playSceneBgm();
@@ -2340,8 +2385,10 @@ function openLog(){
 
 async function initApp(){
   await loadPersistentData();
+  await loadSettingsFromServer();
   assetAdminUnlocked=isAdminMode();
   refreshSettingsAccess();
+  toggleImageSettingsVisibility();
   renderHearts();
   updateAudioDeleteButtons();
   if(isAdminMode() && location.hash==='#settings'){
