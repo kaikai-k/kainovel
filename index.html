@@ -381,6 +381,7 @@ body{font-family:'Noto Sans JP',sans-serif;background:#111;color:var(--text);}
       <button class="bc" type="button" onclick="loadSettingsFromServer()">サーバーから反映</button>
       <button class="bp" type="button" onclick="saveSettingsToServer()">サーバーへ保存</button>
     </div>
+    <div class="hint" style="margin-top:6px">Firebase Realtime Database に保存します。RTDBを使わない場合は <code>npm start</code> のローカルサーバーAPIにフォールバックします。</div>
 
     <h3>🎼 シーン別BGM設定</h3>
     <div class="hint" style="margin-bottom:10px">場所ごとにBGMを設定できます。未設定の場所では上の「BGM（ループ再生）」が流れます。</div>
@@ -437,6 +438,38 @@ body{font-family:'Noto Sans JP',sans-serif;background:#111;color:var(--text);}
 <div id="save-modal" class="mo hidden"><div class="mb"><h2>セーブ</h2><div class="sg" id="save-slots"></div><div class="mf"><button class="bc" onclick="cm('save-modal')">閉じる</button></div></div></div>
 <div id="load-modal" class="mo hidden"><div class="mb"><h2>ロード</h2><div class="sg" id="load-slots"></div><div class="mf"><button class="bc" onclick="cm('load-modal')">閉じる</button></div></div></div>
 <div id="log-modal" class="mo hidden"><div class="mb"><h2>バックログ</h2><div id="log-list"></div><div class="mf"><button class="bc" onclick="cm('log-modal')">閉じる</button></div></div></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js";
+import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-analytics.js";
+import { getDatabase, ref, get, set } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCw-Mi25A4ta6O1x-GTtkQUCyxmtik2zCU",
+  authDomain: "kainovel.firebaseapp.com",
+  databaseURL: "https://kainovel-default-rtdb.firebaseio.com",
+  projectId: "kainovel",
+  storageBucket: "kainovel.firebasestorage.app",
+  messagingSenderId: "594039203222",
+  appId: "1:594039203222:web:ef2506f14fd97b63b269b7",
+  measurementId: "G-FBEC2F34N5"
+};
+
+const app = initializeApp(firebaseConfig);
+try{ getAnalytics(app); }catch(_e){}
+const db = getDatabase(app);
+
+window.kaiFirebase = {
+  ready:true,
+  async saveSettings(payload){
+    await set(ref(db,'kainovel-settings'), payload);
+  },
+  async loadSettings(){
+    const snap = await get(ref(db,'kainovel-settings'));
+    return snap.exists() ? snap.val() : null;
+  }
+};
+</script>
 
 <script>
 /* ═══════════════════════════════════════════════════════════════
@@ -1934,18 +1967,29 @@ function applySharedSettings(parsed){
 }
 async function saveSettingsToServer(){
   try{
+    if(window.kaiFirebase?.ready){
+      await window.kaiFirebase.saveSettings(buildSharePayload());
+      alert('Firebaseへ保存しました。');
+      return;
+    }
     const res=await fetch('/api/settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(buildSharePayload())});
     if(!res.ok) throw new Error('save failed');
     alert('サーバーへ保存しました。');
   }catch(err){
-    alert('サーバー保存に失敗しました。server.js で起動しているか確認してください。');
+    alert('保存に失敗しました。Firebase設定または server.js 起動を確認してください。');
   }
 }
 async function loadSettingsFromServer(){
   try{
-    const res=await fetch('/api/settings');
-    if(!res.ok) throw new Error('load failed');
-    const parsed=await res.json();
+    let parsed=null;
+    if(window.kaiFirebase?.ready){
+      parsed=await window.kaiFirebase.loadSettings();
+    }else{
+      const res=await fetch('/api/settings');
+      if(!res.ok) throw new Error('load failed');
+      parsed=await res.json();
+    }
+    if(!parsed || Object.keys(parsed).length===0) return;
     applySharedSettings(parsed);
     document.getElementById('logo-txt').textContent=G.gameTitle;
     buildSettingsUI();
@@ -1954,7 +1998,7 @@ async function loadSettingsFromServer(){
     applyBgForCurrentLoc();
     playSceneBgm();
     await savePersistentData();
-    alert('サーバー設定を反映しました。');
+    alert(window.kaiFirebase?.ready?'Firebase設定を反映しました。':'サーバー設定を反映しました。');
   }catch(err){
     // server未使用時は静かにスキップ
   }
