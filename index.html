@@ -461,6 +461,7 @@ const db = getDatabase(app);
 
 window.kaiFirebase = {
   ready:true,
+  rtdbUrl: firebaseConfig.databaseURL,
   async saveSettings(payload){
     await set(ref(db,'kainovel-settings'), payload);
   },
@@ -1967,13 +1968,23 @@ function applySharedSettings(parsed){
   }
 }
 async function saveSettingsToServer(){
+  const payload=buildSharePayload();
   try{
     if(window.kaiFirebase?.ready){
-      await window.kaiFirebase.saveSettings(buildSharePayload());
-      alert('Firebaseへ保存しました。');
-      return;
+      try{
+        await window.kaiFirebase.saveSettings(payload);
+        alert('Firebaseへ保存しました。');
+        return;
+      }catch(_sdkErr){
+        const restUrl=`${String(window.kaiFirebase.rtdbUrl||'').replace(/\/+$/,'')}/kainovel-settings.json`;
+        const restRes=await fetch(restUrl,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+        if(restRes.ok){
+          alert('Firebaseへ保存しました。');
+          return;
+        }
+      }
     }
-    const res=await fetch('/api/settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(buildSharePayload())});
+    const res=await fetch('/api/settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
     if(!res.ok) throw new Error('save failed');
     alert('サーバーへ保存しました。');
   }catch(err){
@@ -1984,7 +1995,13 @@ async function loadSettingsFromServer(){
   try{
     let parsed=null;
     if(window.kaiFirebase?.ready){
-      parsed=await window.kaiFirebase.loadSettings();
+      try{
+        parsed=await window.kaiFirebase.loadSettings();
+      }catch(_sdkErr){
+        const restUrl=`${String(window.kaiFirebase.rtdbUrl||'').replace(/\/+$/,'')}/kainovel-settings.json`;
+        const restRes=await fetch(restUrl);
+        if(restRes.ok) parsed=await restRes.json();
+      }
     }else{
       const res=await fetch('/api/settings');
       if(!res.ok) throw new Error('load failed');
