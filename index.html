@@ -370,6 +370,13 @@ body{font-family:'Noto Sans JP',sans-serif;background:#111;color:var(--text);}
     <div class="ss"><label class="sl">BGM音量</label><div class="sr"><input type="range" min="0" max="100" id="s-bv" oninput="lv('b',this.value)"><span id="bv-n">70</span></div></div>
     <div class="ss"><label class="sl">SE音量</label><div class="sr"><input type="range" min="0" max="100" id="s-sv" oninput="lv('s',this.value)"><span id="sv-n">80</span></div></div>
     <div class="ss"><label class="sl">テキスト速度</label><div class="sr"><input type="range" min="1" max="10" id="s-spd" oninput="document.getElementById('sp-n').textContent=this.value"><span id="sp-n">5</span></div></div>
+    <h3>📤 端末間共有（設定のエクスポート/インポート）</h3>
+    <div class="hint" style="margin-bottom:10px">画像・音設定をJSONで書き出して、別端末で読み込めます。</div>
+    <div class="sx">
+      <button class="bc" type="button" onclick="exportSharedSettings()">設定を書き出す</button>
+      <button class="bp" type="button" onclick="document.getElementById('import-settings-file').click()">設定を読み込む</button>
+      <input id="import-settings-file" type="file" accept="application/json" style="display:none" onchange="importSharedSettings(event)">
+    </div>
 
     <h3>🎼 シーン別BGM設定</h3>
     <div class="hint" style="margin-bottom:10px">場所ごとにBGMを設定できます。未設定の場所では上の「BGM（ループ再生）」が流れます。</div>
@@ -1826,6 +1833,108 @@ function applySettings(){
   cm('settings-modal');
 }
 function lv(t,v){if(t==='b'){G.bgmVol=v/100;document.getElementById('bv-n').textContent=v;if(bgmAudio)bgmAudio.volume=G.bgmVol;}else{G.seVol=v/100;document.getElementById('sv-n').textContent=v;}}
+function buildSharePayload(){
+  return {
+    version:1,
+    exportedAt:new Date().toISOString(),
+    locData,
+    defaultAssets,
+    cgData,
+    sceneBgmData,
+    placeNames:Object.fromEntries(PLACE_PRESETS.filter(p=>isCustomPlace(p.id)).map(p=>[p.id,p.name])),
+    settings:{
+      char1Name:G.char1Name,
+      gameTitle:G.gameTitle,
+      bgmVol:G.bgmVol,
+      seVol:G.seVol,
+      textSpeed:G.textSpeed,
+      bgmUrl:G.bgmUrl,
+      seUrl:G.seUrl,
+      choiceSeUrl:G.choiceSeUrl,
+      nextSeUrl:G.nextSeUrl
+    }
+  };
+}
+function exportSharedSettings(){
+  const data=JSON.stringify(buildSharePayload());
+  const blob=new Blob([data],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=`kainovel-settings-${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+async function importSharedSettings(e){
+  const f=e.target.files?.[0];
+  if(!f) return;
+  try{
+    const raw=await f.text();
+    const parsed=JSON.parse(raw);
+    if(parsed.locData){
+      PLACE_PRESETS.forEach(loc=>{
+        const d=parsed.locData[loc.id];
+        if(!d) return;
+        locData[loc.id].bg=d.bg||null;
+        locData[loc.id].sprites={
+          normal:d.sprites?.normal||null,
+          smile:d.sprites?.smile||null,
+          surprise:d.sprites?.surprise||null,
+          sad:d.sprites?.sad||null
+        };
+      });
+    }
+    if(parsed.defaultAssets){
+      defaultAssets.bg=parsed.defaultAssets.bg||null;
+      defaultAssets.sprites={
+        normal:parsed.defaultAssets.sprites?.normal||null,
+        smile:parsed.defaultAssets.sprites?.smile||null,
+        surprise:parsed.defaultAssets.sprites?.surprise||null,
+        sad:parsed.defaultAssets.sprites?.sad||null
+      };
+    }
+    if(parsed.cgData){
+      CG_SCENES.forEach(scene=>{
+        const d=parsed.cgData[scene.id];
+        if(!d) return;
+        cgData[scene.id]={url:d.url||null,name:d.name||''};
+      });
+    }
+    if(parsed.sceneBgmData){
+      PLACE_PRESETS.forEach(loc=>{
+        const d=parsed.sceneBgmData[loc.id];
+        if(!d) return;
+        sceneBgmData[loc.id]={url:d.url||null,name:d.name||''};
+      });
+    }
+    if(parsed.placeNames){
+      PLACE_PRESETS.forEach(place=>{
+        if(isCustomPlace(place.id) && parsed.placeNames[place.id]) place.name=parsed.placeNames[place.id];
+      });
+    }
+    if(parsed.settings){
+      G.char1Name=parsed.settings.char1Name||G.char1Name;
+      G.gameTitle=parsed.settings.gameTitle||G.gameTitle;
+      G.bgmVol=typeof parsed.settings.bgmVol==='number'?parsed.settings.bgmVol:G.bgmVol;
+      G.seVol=typeof parsed.settings.seVol==='number'?parsed.settings.seVol:G.seVol;
+      G.textSpeed=parsed.settings.textSpeed||G.textSpeed;
+      G.bgmUrl=parsed.settings.bgmUrl||null;
+      G.seUrl=parsed.settings.seUrl||null;
+      G.choiceSeUrl=parsed.settings.choiceSeUrl||null;
+      G.nextSeUrl=parsed.settings.nextSeUrl||null;
+    }
+    document.getElementById('logo-txt').textContent=G.gameTitle;
+    buildSettingsUI();
+    updateAudioDeleteButtons();
+    applyBgForCurrentLoc();
+    playSceneBgm();
+    await savePersistentData();
+    alert('設定を読み込みました。');
+  }catch(err){
+    alert('設定ファイルの読み込みに失敗しました。');
+  }finally{
+    e.target.value='';
+  }
+}
 
 /* File handlers */
 function updateAudioDeleteButtons(){
