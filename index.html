@@ -349,7 +349,7 @@ body{font-family:'Noto Sans JP',sans-serif;background:#111;color:var(--text);}
 <div id="settings-modal" class="mo hidden">
   <div class="mb">
     <h2>設定</h2>
-    <div class="ss" id="image-admin-lock" style="background:var(--pink-ll);border:1.5px solid var(--pink-l);border-radius:12px;padding:12px;">
+    <div class="ss" id="image-admin-lock" data-admin-only style="background:var(--pink-ll);border:1.5px solid var(--pink-l);border-radius:12px;padding:12px;">
       <label class="sl">🔒 画像アセット編集ロック（管理者専用）</label>
       <div class="hint" style="margin-bottom:8px;">背景/立ち絵/CG の変更は管理者のみ可能です。音設定（BGM/SE）は一般ページでも変更できます。</div>
       <div class="sx">
@@ -359,33 +359,33 @@ body{font-family:'Noto Sans JP',sans-serif;background:#111;color:var(--text);}
       <div class="code-badge" id="asset-admin-status">🔒 ロック中（編集不可）</div>
     </div>
 
-    <div class="ss"><label class="sl">🎮 ゲームタイトル</label><input class="si" id="s-title" type="text"></div>
-    <div class="ss"><label class="sl">👤 キャラクター名（ゲーム内表示）</label><input class="si" id="s-cname" type="text" placeholder="カイ"></div>
+    <div class="ss" data-admin-only><label class="sl">🎮 ゲームタイトル</label><input class="si" id="s-title" type="text"></div>
+    <div class="ss" data-admin-only><label class="sl">👤 キャラクター名（ゲーム内表示）</label><input class="si" id="s-cname" type="text" placeholder="カイ"></div>
 
     <h3>🎵 サウンド</h3>
-    <div class="ss"><label class="sl">BGM（ループ再生）</label><div class="sx"><div class="fz"><div>クリックで選択</div><div class="fok" id="bgm-ok"></div><input type="file" accept="audio/*" onchange="handleBgmFile(event)"></div><button class="delbtn" id="clear-bgm-btn" type="button" onclick="clearGlobalBgm()">削除</button></div></div>
-    <div class="ss"><label class="sl">テキスト送りSE</label><div class="sx"><div class="fz"><div>クリックで選択</div><div class="fok" id="se-ok"></div><input type="file" accept="audio/*" onchange="handleSeFile(event)"></div><button class="delbtn" id="clear-se-btn" type="button" onclick="clearSe()">削除</button></div></div>
-    <div class="ss"><label class="sl">選択肢クリックSE</label><div class="sx"><div class="fz"><div>クリックで選択</div><div class="fok" id="choice-se-ok"></div><input type="file" accept="audio/*" onchange="handleChoiceSeFile(event)"></div><button class="delbtn" id="clear-choice-se-btn" type="button" onclick="clearChoiceSe()">削除</button></div></div>
-    <div class="ss"><label class="sl">テキスト切り替えSE（▼を押す時）</label><div class="sx"><div class="fz"><div>クリックで選択</div><div class="fok" id="next-se-ok"></div><input type="file" accept="audio/*" onchange="handleNextSeFile(event)"></div><button class="delbtn" id="clear-next-se-btn" type="button" onclick="clearNextSe()">削除</button></div></div>
+    <div class="ss" data-admin-only><label class="sl">BGM（ループ再生）</label><div class="sx"><div class="fz"><div>クリックで選択</div><div class="fok" id="bgm-ok"></div><input type="file" accept="audio/*" onchange="handleBgmFile(event)"></div><button class="delbtn" id="clear-bgm-btn" type="button" onclick="clearGlobalBgm()">削除</button></div></div>
+    <div class="ss" data-admin-only><label class="sl">テキスト送りSE</label><div class="sx"><div class="fz"><div>クリックで選択</div><div class="fok" id="se-ok"></div><input type="file" accept="audio/*" onchange="handleSeFile(event)"></div><button class="delbtn" id="clear-se-btn" type="button" onclick="clearSe()">削除</button></div></div>
+    <div class="ss" data-admin-only><label class="sl">選択肢クリックSE</label><div class="sx"><div class="fz"><div>クリックで選択</div><div class="fok" id="choice-se-ok"></div><input type="file" accept="audio/*" onchange="handleChoiceSeFile(event)"></div><button class="delbtn" id="clear-choice-se-btn" type="button" onclick="clearChoiceSe()">削除</button></div></div>
+    <div class="ss" data-admin-only><label class="sl">テキスト切り替えSE（▼を押す時）</label><div class="sx"><div class="fz"><div>クリックで選択</div><div class="fok" id="next-se-ok"></div><input type="file" accept="audio/*" onchange="handleNextSeFile(event)"></div><button class="delbtn" id="clear-next-se-btn" type="button" onclick="clearNextSe()">削除</button></div></div>
     <div class="ss"><label class="sl">BGM音量</label><div class="sr"><input type="range" min="0" max="100" id="s-bv" oninput="lv('b',this.value)"><span id="bv-n">70</span></div></div>
     <div class="ss"><label class="sl">SE音量</label><div class="sr"><input type="range" min="0" max="100" id="s-sv" oninput="lv('s',this.value)"><span id="sv-n">80</span></div></div>
     <div class="ss"><label class="sl">テキスト速度</label><div class="sr"><input type="range" min="1" max="10" id="s-spd" oninput="document.getElementById('sp-n').textContent=this.value"><span id="sp-n">5</span></div></div>
-    <h3>📤 端末間共有（設定のエクスポート/インポート）</h3>
-    <div class="hint" style="margin-bottom:10px">画像・音設定をJSONで書き出して、別端末で読み込めます。</div>
-    <div class="sx">
+    <h3 data-admin-only>📤 端末間共有（設定のエクスポート/インポート）</h3>
+    <div class="hint" data-admin-only style="margin-bottom:10px">画像・音設定をJSONで書き出して、別端末で読み込めます。</div>
+    <div class="sx" data-admin-only>
       <button class="bc" type="button" onclick="exportSharedSettings()">設定を書き出す</button>
       <button class="bp" type="button" onclick="document.getElementById('import-settings-file').click()">設定を読み込む</button>
       <input id="import-settings-file" type="file" accept="application/json" style="display:none" onchange="importSharedSettings(event)">
     </div>
-    <div class="sx" style="margin-top:8px">
+    <div class="sx" data-admin-only style="margin-top:8px">
       <button class="bc" type="button" onclick="loadSettingsFromServer()">サーバーから反映</button>
       <button class="bp" type="button" onclick="saveSettingsToServer()">サーバーへ保存</button>
     </div>
-    <div class="hint" style="margin-top:6px">Firebase Realtime Database に保存します。RTDBを使わない場合は <code>npm start</code> のローカルサーバーAPIにフォールバックします。</div>
+    <div class="hint" data-admin-only style="margin-top:6px">Firebase Realtime Database に保存します。RTDBを使わない場合は <code>npm start</code> のローカルサーバーAPIにフォールバックします。</div>
 
-    <h3>🎼 シーン別BGM設定</h3>
-    <div class="hint" style="margin-bottom:10px">場所ごとにBGMを設定できます。未設定の場所では上の「BGM（ループ再生）」が流れます。</div>
-    <div id="scene-bgm-settings-container"></div>
+    <h3 data-admin-only>🎼 シーン別BGM設定</h3>
+    <div class="hint" data-admin-only style="margin-bottom:10px">場所ごとにBGMを設定できます。未設定の場所では上の「BGM（ループ再生）」が流れます。</div>
+    <div id="scene-bgm-settings-container" data-admin-only></div>
 
     <div id="image-settings-area">
     <h3>🧷 デフォルト背景・立ち絵設定</h3>
@@ -604,11 +604,12 @@ function canEditAssets(){
   return assetAdminUnlocked || isAdminMode();
 }
 function toggleImageSettingsVisibility(){
-  const showImageSettings=isAdminMode();
-  const lock=document.getElementById('image-admin-lock');
+  const showAdminSettings=isAdminMode();
+  document.querySelectorAll('[data-admin-only]').forEach(el=>{
+    el.style.display=showAdminSettings?'':'none';
+  });
   const area=document.getElementById('image-settings-area');
-  if(lock) lock.style.display=showImageSettings?'block':'none';
-  if(area) area.style.display=showImageSettings?'block':'none';
+  if(area) area.style.display=showAdminSettings?'block':'none';
 }
 function guardAssetEdit(){
   if(canEditAssets()) return true;
