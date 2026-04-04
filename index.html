@@ -350,8 +350,8 @@ body{font-family:'Noto Sans JP',sans-serif;background:#111;color:var(--text);}
   <div class="mb">
     <h2>設定</h2>
     <div class="ss" style="background:var(--pink-ll);border:1.5px solid var(--pink-l);border-radius:12px;padding:12px;">
-      <label class="sl">🔒 アセット編集ロック（管理者専用）</label>
-      <div class="hint" style="margin-bottom:8px;">ゲームのプレイは誰でも可能ですが、背景/立ち絵/CG/BGM/SEの変更は管理者コード入力後のみ有効になります。</div>
+      <label class="sl">🔒 画像アセット編集ロック（管理者専用）</label>
+      <div class="hint" style="margin-bottom:8px;">背景/立ち絵/CG の変更は管理者のみ可能です。音設定（BGM/SE）は一般ページでも変更できます。</div>
       <div class="sx">
         <input class="si" id="asset-admin-code" type="password" placeholder="管理者コードを入力">
         <button class="bp" type="button" onclick="unlockAssetEditor()">解除</button>
@@ -363,10 +363,10 @@ body{font-family:'Noto Sans JP',sans-serif;background:#111;color:var(--text);}
     <div class="ss"><label class="sl">👤 キャラクター名（ゲーム内表示）</label><input class="si" id="s-cname" type="text" placeholder="カイ"></div>
 
     <h3>🎵 サウンド</h3>
-    <div class="ss"><label class="sl">BGM（ループ再生）</label><div class="sx"><div class="fz"><div>クリックで選択</div><div class="fok" id="bgm-ok"></div><input data-asset-admin type="file" accept="audio/*" onchange="handleBgmFile(event)"></div><button class="delbtn" id="clear-bgm-btn" type="button" onclick="clearGlobalBgm()" data-asset-admin>削除</button></div></div>
-    <div class="ss"><label class="sl">テキスト送りSE</label><div class="sx"><div class="fz"><div>クリックで選択</div><div class="fok" id="se-ok"></div><input data-asset-admin type="file" accept="audio/*" onchange="handleSeFile(event)"></div><button class="delbtn" id="clear-se-btn" type="button" onclick="clearSe()" data-asset-admin>削除</button></div></div>
-    <div class="ss"><label class="sl">選択肢クリックSE</label><div class="sx"><div class="fz"><div>クリックで選択</div><div class="fok" id="choice-se-ok"></div><input data-asset-admin type="file" accept="audio/*" onchange="handleChoiceSeFile(event)"></div><button class="delbtn" id="clear-choice-se-btn" type="button" onclick="clearChoiceSe()" data-asset-admin>削除</button></div></div>
-    <div class="ss"><label class="sl">テキスト切り替えSE（▼を押す時）</label><div class="sx"><div class="fz"><div>クリックで選択</div><div class="fok" id="next-se-ok"></div><input data-asset-admin type="file" accept="audio/*" onchange="handleNextSeFile(event)"></div><button class="delbtn" id="clear-next-se-btn" type="button" onclick="clearNextSe()" data-asset-admin>削除</button></div></div>
+    <div class="ss"><label class="sl">BGM（ループ再生）</label><div class="sx"><div class="fz"><div>クリックで選択</div><div class="fok" id="bgm-ok"></div><input type="file" accept="audio/*" onchange="handleBgmFile(event)"></div><button class="delbtn" id="clear-bgm-btn" type="button" onclick="clearGlobalBgm()">削除</button></div></div>
+    <div class="ss"><label class="sl">テキスト送りSE</label><div class="sx"><div class="fz"><div>クリックで選択</div><div class="fok" id="se-ok"></div><input type="file" accept="audio/*" onchange="handleSeFile(event)"></div><button class="delbtn" id="clear-se-btn" type="button" onclick="clearSe()">削除</button></div></div>
+    <div class="ss"><label class="sl">選択肢クリックSE</label><div class="sx"><div class="fz"><div>クリックで選択</div><div class="fok" id="choice-se-ok"></div><input type="file" accept="audio/*" onchange="handleChoiceSeFile(event)"></div><button class="delbtn" id="clear-choice-se-btn" type="button" onclick="clearChoiceSe()">削除</button></div></div>
+    <div class="ss"><label class="sl">テキスト切り替えSE（▼を押す時）</label><div class="sx"><div class="fz"><div>クリックで選択</div><div class="fok" id="next-se-ok"></div><input type="file" accept="audio/*" onchange="handleNextSeFile(event)"></div><button class="delbtn" id="clear-next-se-btn" type="button" onclick="clearNextSe()">削除</button></div></div>
     <div class="ss"><label class="sl">BGM音量</label><div class="sr"><input type="range" min="0" max="100" id="s-bv" oninput="lv('b',this.value)"><span id="bv-n">70</span></div></div>
     <div class="ss"><label class="sl">SE音量</label><div class="sr"><input type="range" min="0" max="100" id="s-sv" oninput="lv('s',this.value)"><span id="sv-n">80</span></div></div>
     <div class="ss"><label class="sl">テキスト速度</label><div class="sr"><input type="range" min="1" max="10" id="s-spd" oninput="document.getElementById('sp-n').textContent=this.value"><span id="sp-n">5</span></div></div>
@@ -548,7 +548,7 @@ function isAdminMode(){
   return sessionStorage.getItem(ADMIN_ENTRY_KEY)==='1';
 }
 function refreshSettingsAccess(){
-  const show = isAdminMode();
+  const show = true;
   const titleBtn=document.getElementById('title-settings-btn');
   const gameBtn=document.getElementById('game-settings-btn');
   if(titleBtn) titleBtn.style.display = show ? 'block' : 'none';
@@ -1718,7 +1718,7 @@ function buildSettingsUI(){
     const zone=document.createElement('div');
     zone.className='sx';zone.style.cssText='flex:1;margin:0;';
     const hasBgm=sceneBgmData[loc.id] && sceneBgmData[loc.id].url;
-    zone.innerHTML=`<div class="fz" style="margin:0;min-height:48px;padding:8px;"><div style="font-size:12px">${hasBgm?'BGMを変更':'クリックでBGMを登録'}</div><div class="fok" id="scbgm-${loc.id}">${hasBgm?'✓ '+(sceneBgmData[loc.id].name||'設定済み'):''}</div><input ${assetDisabled} type="file" accept="audio/*" onchange="handleSceneBgm(event,'${loc.id}')"></div><button class="delbtn" type="button" onclick="clearSceneBgm('${loc.id}')" ${(canEditAssets()&&hasBgm)?'':'disabled'} data-asset-admin>削除</button>`;
+    zone.innerHTML=`<div class="fz" style="margin:0;min-height:48px;padding:8px;"><div style="font-size:12px">${hasBgm?'BGMを変更':'クリックでBGMを登録'}</div><div class="fok" id="scbgm-${loc.id}">${hasBgm?'✓ '+(sceneBgmData[loc.id].name||'設定済み'):''}</div><input type="file" accept="audio/*" onchange="handleSceneBgm(event,'${loc.id}')"></div><button class="delbtn" type="button" onclick="clearSceneBgm('${loc.id}')" ${hasBgm?'':'disabled'}>削除</button>`;
     row.appendChild(label);row.appendChild(zone);
     sb.appendChild(row);
   });
@@ -1799,10 +1799,6 @@ function previewPlace(placeId){
 }
 
 function openSettings(){
-  if(!isAdminMode()){
-    alert('設定画面は管理者専用です。');
-    return;
-  }
   buildSettingsUI();
   document.getElementById('s-title').value=G.gameTitle;
   document.getElementById('s-cname').value=G.char1Name;
@@ -1837,13 +1833,12 @@ function updateAudioDeleteButtons(){
   const seBtn=document.getElementById('clear-se-btn');
   const choiceSeBtn=document.getElementById('clear-choice-se-btn');
   const nextSeBtn=document.getElementById('clear-next-se-btn');
-  if(bgmBtn) bgmBtn.disabled=(!G.bgmUrl)||!canEditAssets();
-  if(seBtn) seBtn.disabled=(!G.seUrl)||!canEditAssets();
-  if(choiceSeBtn) choiceSeBtn.disabled=(!G.choiceSeUrl)||!canEditAssets();
-  if(nextSeBtn) nextSeBtn.disabled=(!G.nextSeUrl)||!canEditAssets();
+  if(bgmBtn) bgmBtn.disabled=!G.bgmUrl;
+  if(seBtn) seBtn.disabled=!G.seUrl;
+  if(choiceSeBtn) choiceSeBtn.disabled=!G.choiceSeUrl;
+  if(nextSeBtn) nextSeBtn.disabled=!G.nextSeUrl;
 }
 async function clearGlobalBgm(){
-  if(!guardAssetEdit()) return;
   G.bgmUrl=null;
   document.getElementById('bgm-ok').textContent='';
   updateAudioDeleteButtons();
@@ -1851,28 +1846,24 @@ async function clearGlobalBgm(){
   await savePersistentData();
 }
 async function clearSe(){
-  if(!guardAssetEdit()) return;
   G.seUrl=null;
   document.getElementById('se-ok').textContent='';
   updateAudioDeleteButtons();
   await savePersistentData();
 }
 async function clearChoiceSe(){
-  if(!guardAssetEdit()) return;
   G.choiceSeUrl=null;
   document.getElementById('choice-se-ok').textContent='';
   updateAudioDeleteButtons();
   await savePersistentData();
 }
 async function clearNextSe(){
-  if(!guardAssetEdit()) return;
   G.nextSeUrl=null;
   document.getElementById('next-se-ok').textContent='';
   updateAudioDeleteButtons();
   await savePersistentData();
 }
 async function clearSceneBgm(locId){
-  if(!guardAssetEdit()) return;
   sceneBgmData[locId]={url:null,name:''};
   if(G.currentLoc===locId) playSceneBgm();
   buildSettingsUI();
@@ -2152,7 +2143,6 @@ async function handleCG(e,sceneId){
   }
 }
 async function handleBgmFile(e){
-  if(!guardAssetEdit()) return;
   const f=e.target.files[0];if(!f)return;
   try{
     G.bgmUrl=await readFileAsDataURL(f);
@@ -2165,7 +2155,6 @@ async function handleBgmFile(e){
   }
 }
 async function handleSceneBgm(e,locId){
-  if(!guardAssetEdit()) return;
   const f=e.target.files[0];if(!f)return;
   try{
     sceneBgmData[locId]={url:await readFileAsDataURL(f),name:f.name};
@@ -2177,7 +2166,6 @@ async function handleSceneBgm(e,locId){
   }
 }
 async function handleSeFile(e){
-  if(!guardAssetEdit()) return;
   const f=e.target.files[0];if(!f)return;
   try{
     G.seUrl=await readFileAsDataURL(f);
@@ -2189,7 +2177,6 @@ async function handleSeFile(e){
   }
 }
 async function handleChoiceSeFile(e){
-  if(!guardAssetEdit()) return;
   const f=e.target.files[0];if(!f)return;
   try{
     G.choiceSeUrl=await readFileAsDataURL(f);
@@ -2201,7 +2188,6 @@ async function handleChoiceSeFile(e){
   }
 }
 async function handleNextSeFile(e){
-  if(!guardAssetEdit()) return;
   const f=e.target.files[0];if(!f)return;
   try{
     G.nextSeUrl=await readFileAsDataURL(f);
@@ -2245,6 +2231,7 @@ function openLog(){
 
 async function initApp(){
   await loadPersistentData();
+  assetAdminUnlocked=isAdminMode();
   refreshSettingsAccess();
   renderHearts();
   updateAudioDeleteButtons();
