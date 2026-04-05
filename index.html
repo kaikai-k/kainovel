@@ -403,10 +403,10 @@ body{font-family:'Noto Sans JP',sans-serif;background:#111;color:var(--text);}
         <div class="ss">
           <label class="sl">🖼️ デフォルト立ち絵 4表情</label>
           <div class="eg">
-            <div class="es"><div class="el">😐 通常</div><div class="eh">選択</div><div class="eok" id="spok-default-normal"></div><input data-asset-admin type="file" accept="image/*" onchange="handleDefaultSprite(event,'normal')"><button class="delbtn" style="margin-top:4px;padding:4px 10px;font-size:10px" type="button" onclick="clearDefaultSprite('normal')" id="clear-default-normal-btn" data-asset-admin>削除</button></div>
-            <div class="es"><div class="el">😊 笑顔</div><div class="eh">選択</div><div class="eok" id="spok-default-smile"></div><input data-asset-admin type="file" accept="image/*" onchange="handleDefaultSprite(event,'smile')"><button class="delbtn" style="margin-top:4px;padding:4px 10px;font-size:10px" type="button" onclick="clearDefaultSprite('smile')" id="clear-default-smile-btn" data-asset-admin>削除</button></div>
-            <div class="es"><div class="el">😲 驚き</div><div class="eh">選択</div><div class="eok" id="spok-default-surprise"></div><input data-asset-admin type="file" accept="image/*" onchange="handleDefaultSprite(event,'surprise')"><button class="delbtn" style="margin-top:4px;padding:4px 10px;font-size:10px" type="button" onclick="clearDefaultSprite('surprise')" id="clear-default-surprise-btn" data-asset-admin>削除</button></div>
-            <div class="es"><div class="el">😢 悲しみ</div><div class="eh">選択</div><div class="eok" id="spok-default-sad"></div><input data-asset-admin type="file" accept="image/*" onchange="handleDefaultSprite(event,'sad')"><button class="delbtn" style="margin-top:4px;padding:4px 10px;font-size:10px" type="button" onclick="clearDefaultSprite('sad')" id="clear-default-sad-btn" data-asset-admin>削除</button></div>
+            <div class="es"><div class="el">😐 通常</div><div class="eh">選択</div><div class="eok" id="spok-default-normal"></div><input data-asset-admin type="file" accept="image/*" onchange="handleDefaultSprite(event,'normal')"><input class="si" id="spurl-default-normal" type="text" placeholder="画像URL" style="margin-top:4px;padding:6px 8px;font-size:11px"><button class="delbtn" style="margin-top:4px;padding:4px 10px;font-size:10px" type="button" onclick="setDefaultSpriteUrl('normal')" data-asset-admin>URL設定</button><button class="delbtn" style="margin-top:4px;padding:4px 10px;font-size:10px" type="button" onclick="clearDefaultSprite('normal')" id="clear-default-normal-btn" data-asset-admin>削除</button></div>
+            <div class="es"><div class="el">😊 笑顔</div><div class="eh">選択</div><div class="eok" id="spok-default-smile"></div><input data-asset-admin type="file" accept="image/*" onchange="handleDefaultSprite(event,'smile')"><input class="si" id="spurl-default-smile" type="text" placeholder="画像URL" style="margin-top:4px;padding:6px 8px;font-size:11px"><button class="delbtn" style="margin-top:4px;padding:4px 10px;font-size:10px" type="button" onclick="setDefaultSpriteUrl('smile')" data-asset-admin>URL設定</button><button class="delbtn" style="margin-top:4px;padding:4px 10px;font-size:10px" type="button" onclick="clearDefaultSprite('smile')" id="clear-default-smile-btn" data-asset-admin>削除</button></div>
+            <div class="es"><div class="el">😲 驚き</div><div class="eh">選択</div><div class="eok" id="spok-default-surprise"></div><input data-asset-admin type="file" accept="image/*" onchange="handleDefaultSprite(event,'surprise')"><input class="si" id="spurl-default-surprise" type="text" placeholder="画像URL" style="margin-top:4px;padding:6px 8px;font-size:11px"><button class="delbtn" style="margin-top:4px;padding:4px 10px;font-size:10px" type="button" onclick="setDefaultSpriteUrl('surprise')" data-asset-admin>URL設定</button><button class="delbtn" style="margin-top:4px;padding:4px 10px;font-size:10px" type="button" onclick="clearDefaultSprite('surprise')" id="clear-default-surprise-btn" data-asset-admin>削除</button></div>
+            <div class="es"><div class="el">😢 悲しみ</div><div class="eh">選択</div><div class="eok" id="spok-default-sad"></div><input data-asset-admin type="file" accept="image/*" onchange="handleDefaultSprite(event,'sad')"><input class="si" id="spurl-default-sad" type="text" placeholder="画像URL" style="margin-top:4px;padding:6px 8px;font-size:11px"><button class="delbtn" style="margin-top:4px;padding:4px 10px;font-size:10px" type="button" onclick="setDefaultSpriteUrl('sad')" data-asset-admin>URL設定</button><button class="delbtn" style="margin-top:4px;padding:4px 10px;font-size:10px" type="button" onclick="clearDefaultSprite('sad')" id="clear-default-sad-btn" data-asset-admin>削除</button></div>
           </div>
         </div>
       </div>
@@ -1848,10 +1848,10 @@ function buildSettingsUI(){
         <div class="ss">
           <label class="sl">🖼️ 立ち絵 4表情（この場所の衣装）</label>
           <div class="eg">
-            <div class="es"><div class="el">😐 通常</div><div class="eh">選択</div><div class="eok" id="spok-${loc.id}-normal"></div><input ${assetDisabled} type="file" accept="image/*" onchange="handleLocSprite(event,'${loc.id}','normal')"><button class="delbtn" style="margin-top:4px;padding:4px 10px;font-size:10px" type="button" onclick="clearLocSprite('${loc.id}','normal')" ${(canEditAssets()&&locData[loc.id].sprites.normal)?'':'disabled'} data-asset-admin>削除</button></div>
-            <div class="es"><div class="el">😊 笑顔</div><div class="eh">選択</div><div class="eok" id="spok-${loc.id}-smile"></div><input ${assetDisabled} type="file" accept="image/*" onchange="handleLocSprite(event,'${loc.id}','smile')"><button class="delbtn" style="margin-top:4px;padding:4px 10px;font-size:10px" type="button" onclick="clearLocSprite('${loc.id}','smile')" ${(canEditAssets()&&locData[loc.id].sprites.smile)?'':'disabled'} data-asset-admin>削除</button></div>
-            <div class="es"><div class="el">😲 驚き</div><div class="eh">選択</div><div class="eok" id="spok-${loc.id}-surprise"></div><input ${assetDisabled} type="file" accept="image/*" onchange="handleLocSprite(event,'${loc.id}','surprise')"><button class="delbtn" style="margin-top:4px;padding:4px 10px;font-size:10px" type="button" onclick="clearLocSprite('${loc.id}','surprise')" ${(canEditAssets()&&locData[loc.id].sprites.surprise)?'':'disabled'} data-asset-admin>削除</button></div>
-            <div class="es"><div class="el">😢 悲しみ</div><div class="eh">選択</div><div class="eok" id="spok-${loc.id}-sad"></div><input ${assetDisabled} type="file" accept="image/*" onchange="handleLocSprite(event,'${loc.id}','sad')"><button class="delbtn" style="margin-top:4px;padding:4px 10px;font-size:10px" type="button" onclick="clearLocSprite('${loc.id}','sad')" ${(canEditAssets()&&locData[loc.id].sprites.sad)?'':'disabled'} data-asset-admin>削除</button></div>
+            <div class="es"><div class="el">😐 通常</div><div class="eh">選択</div><div class="eok" id="spok-${loc.id}-normal"></div><input ${assetDisabled} type="file" accept="image/*" onchange="handleLocSprite(event,'${loc.id}','normal')"><input class="si" style="margin-top:4px;padding:6px 8px;font-size:11px" id="spurl-${loc.id}-normal" type="text" value="${escapeHtml(locData[loc.id].sprites.normal||'')}" placeholder="画像URL"><button class="delbtn" style="margin-top:4px;padding:4px 10px;font-size:10px" type="button" onclick="setLocSpriteUrl('${loc.id}','normal')" ${assetDisabled}>URL設定</button><button class="delbtn" style="margin-top:4px;padding:4px 10px;font-size:10px" type="button" onclick="clearLocSprite('${loc.id}','normal')" ${(canEditAssets()&&locData[loc.id].sprites.normal)?'':'disabled'} data-asset-admin>削除</button></div>
+            <div class="es"><div class="el">😊 笑顔</div><div class="eh">選択</div><div class="eok" id="spok-${loc.id}-smile"></div><input ${assetDisabled} type="file" accept="image/*" onchange="handleLocSprite(event,'${loc.id}','smile')"><input class="si" style="margin-top:4px;padding:6px 8px;font-size:11px" id="spurl-${loc.id}-smile" type="text" value="${escapeHtml(locData[loc.id].sprites.smile||'')}" placeholder="画像URL"><button class="delbtn" style="margin-top:4px;padding:4px 10px;font-size:10px" type="button" onclick="setLocSpriteUrl('${loc.id}','smile')" ${assetDisabled}>URL設定</button><button class="delbtn" style="margin-top:4px;padding:4px 10px;font-size:10px" type="button" onclick="clearLocSprite('${loc.id}','smile')" ${(canEditAssets()&&locData[loc.id].sprites.smile)?'':'disabled'} data-asset-admin>削除</button></div>
+            <div class="es"><div class="el">😲 驚き</div><div class="eh">選択</div><div class="eok" id="spok-${loc.id}-surprise"></div><input ${assetDisabled} type="file" accept="image/*" onchange="handleLocSprite(event,'${loc.id}','surprise')"><input class="si" style="margin-top:4px;padding:6px 8px;font-size:11px" id="spurl-${loc.id}-surprise" type="text" value="${escapeHtml(locData[loc.id].sprites.surprise||'')}" placeholder="画像URL"><button class="delbtn" style="margin-top:4px;padding:4px 10px;font-size:10px" type="button" onclick="setLocSpriteUrl('${loc.id}','surprise')" ${assetDisabled}>URL設定</button><button class="delbtn" style="margin-top:4px;padding:4px 10px;font-size:10px" type="button" onclick="clearLocSprite('${loc.id}','surprise')" ${(canEditAssets()&&locData[loc.id].sprites.surprise)?'':'disabled'} data-asset-admin>削除</button></div>
+            <div class="es"><div class="el">😢 悲しみ</div><div class="eh">選択</div><div class="eok" id="spok-${loc.id}-sad"></div><input ${assetDisabled} type="file" accept="image/*" onchange="handleLocSprite(event,'${loc.id}','sad')"><input class="si" style="margin-top:4px;padding:6px 8px;font-size:11px" id="spurl-${loc.id}-sad" type="text" value="${escapeHtml(locData[loc.id].sprites.sad||'')}" placeholder="画像URL"><button class="delbtn" style="margin-top:4px;padding:4px 10px;font-size:10px" type="button" onclick="setLocSpriteUrl('${loc.id}','sad')" ${assetDisabled}>URL設定</button><button class="delbtn" style="margin-top:4px;padding:4px 10px;font-size:10px" type="button" onclick="clearLocSprite('${loc.id}','sad')" ${(canEditAssets()&&locData[loc.id].sprites.sad)?'':'disabled'} data-asset-admin>削除</button></div>
           </div>
           <div class="hint">💡 シナリオ内で {type:'location', loc:'${loc.id}'} と書くとこの場所設定を直接呼び出せます</div>
         </div>
@@ -1875,7 +1875,7 @@ function buildSettingsUI(){
     const zone=document.createElement('div');
     zone.className='sx';zone.style.cssText='flex:1;margin:0;';
     const hasImg=cgData[scene.id].url;
-    zone.innerHTML=`<div class="fz" style="margin:0;min-height:48px;padding:8px;"><div style="font-size:12px">${hasImg?'画像を変更':'クリックで画像を登録'}</div><div class="fok" id="cgok-${scene.id}">${hasImg?'✓ '+cgData[scene.id].name:''}</div><input ${assetDisabled} type="file" accept="image/*" onchange="handleCG(event,'${scene.id}')"></div><button class="delbtn" type="button" onclick="clearCG('${scene.id}')" ${(canEditAssets()&&hasImg)?'':'disabled'} data-asset-admin>削除</button>`;
+    zone.innerHTML=`<div class="fz" style="margin:0;min-height:48px;padding:8px;"><div style="font-size:12px">${hasImg?'画像を変更':'クリックで画像を登録'}</div><div class="fok" id="cgok-${scene.id}">${hasImg?'✓ '+cgData[scene.id].name:''}</div><input ${assetDisabled} type="file" accept="image/*" onchange="handleCG(event,'${scene.id}')"><input class="si" style="margin-top:6px;padding:6px 8px;font-size:11px" id="cgurl-${scene.id}" type="text" value="${escapeHtml(cgData[scene.id].url||'')}" placeholder="画像URL"><button class="delbtn" style="margin-top:6px" type="button" onclick="setCGUrl('${scene.id}')" ${assetDisabled}>URL設定</button></div><button class="delbtn" type="button" onclick="clearCG('${scene.id}')" ${(canEditAssets()&&hasImg)?'':'disabled'} data-asset-admin>削除</button>`;
     row.appendChild(label);row.appendChild(zone);
     cc.appendChild(row);
   });
@@ -1916,6 +1916,10 @@ function openSettings(){
   document.getElementById('se-ok').textContent=G.seUrl ? '✓ 設定済み' : '';
   document.getElementById('choice-se-ok').textContent=G.choiceSeUrl ? '✓ 設定済み' : '';
   document.getElementById('next-se-ok').textContent=G.nextSeUrl ? '✓ 設定済み' : '';
+  ['normal','smile','surprise','sad'].forEach(expr=>{
+    const el=document.getElementById(`spurl-default-${expr}`);
+    if(el) el.value=defaultAssets.sprites[expr]||'';
+  });
   updateAudioDeleteButtons();
   updateAssetEditorUI();
   document.getElementById('settings-modal').classList.remove('hidden');
@@ -2174,6 +2178,33 @@ async function clearCG(sceneId){
   if(!guardAssetEdit()) return;
   cgData[sceneId]={url:null,name:''};
   buildSettingsUI();
+  await savePersistentData();
+}
+async function setDefaultSpriteUrl(expr){
+  if(!guardAssetEdit()) return;
+  const el=document.getElementById(`spurl-default-${expr}`);
+  const url=(el?.value||'').trim();
+  if(!url) return;
+  defaultAssets.sprites[expr]=url;
+  const ok=document.getElementById(`spok-default-${expr}`);if(ok)ok.textContent='✓ URL設定済み';
+  await savePersistentData();
+}
+async function setLocSpriteUrl(locId,expr){
+  if(!guardAssetEdit()) return;
+  const el=document.getElementById(`spurl-${locId}-${expr}`);
+  const url=(el?.value||'').trim();
+  if(!url) return;
+  locData[locId].sprites[expr]=url;
+  const ok=document.getElementById(`spok-${locId}-${expr}`);if(ok)ok.textContent='✓ URL設定済み';
+  await savePersistentData();
+}
+async function setCGUrl(sceneId){
+  if(!guardAssetEdit()) return;
+  const el=document.getElementById(`cgurl-${sceneId}`);
+  const url=(el?.value||'').trim();
+  if(!url) return;
+  cgData[sceneId]={url,name:'URL設定'};
+  const ok=document.getElementById(`cgok-${sceneId}`);if(ok)ok.textContent='✓ URL設定済み';
   await savePersistentData();
 }
 
