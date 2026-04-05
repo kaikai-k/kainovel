@@ -2154,7 +2154,7 @@ function compressImageFile(file,{maxWidth=1280,maxHeight=1280,quality=0.82}={}){
         if(!ctx){reject(new Error('canvas error'));return;}
         ctx.drawImage(img,0,0,width,height);
         const srcType=(file.type||'').toLowerCase();
-        const outType=(srcType==='image/png' || srcType==='image/webp') ? 'image/webp' : 'image/jpeg';
+        const outType=srcType==='image/png' ? 'image/png' : (srcType==='image/webp' ? 'image/webp' : 'image/jpeg');
         resolve(canvas.toDataURL(outType,quality));
       };
       img.onerror=()=>reject(new Error('image decode error'));
@@ -2179,7 +2179,7 @@ function compressDataUrl(dataUrl,{maxWidth=1280,maxHeight=1280,quality=0.75}={})
       ctx.drawImage(img,0,0,width,height);
       const m=String(dataUrl).match(/^data:(image\/[a-zA-Z0-9.+-]+);/);
       const srcType=(m?.[1]||'').toLowerCase();
-      const outType=(srcType==='image/png' || srcType==='image/webp') ? 'image/webp' : 'image/jpeg';
+      const outType=srcType==='image/png' ? 'image/png' : (srcType==='image/webp' ? 'image/webp' : 'image/jpeg');
       resolve(canvas.toDataURL(outType,quality));
     };
     img.onerror=()=>reject(new Error('image decode error'));
