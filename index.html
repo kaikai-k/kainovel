@@ -381,6 +381,7 @@ body{font-family:'Noto Sans JP',sans-serif;background:#111;color:var(--text);}
       <button class="bc" type="button" onclick="loadSettingsFromServer()">サーバーから反映</button>
       <button class="bp" type="button" onclick="saveSettingsToServer()">サーバーへ保存</button>
     </div>
+    <div id="sync-status" class="hint" data-admin-only style="margin-top:6px"></div>
     <div class="hint" data-admin-only style="margin-top:6px">Firebase Realtime Database に保存します。RTDBを使わない場合は <code>npm start</code> のローカルサーバーAPIにフォールバックします。</div>
 
     <h3 data-admin-only>🎼 シーン別BGM設定</h3>
@@ -483,6 +484,21 @@ function getRtdbRestUrls(baseUrl){
     urls.push(normalized.replace('firebasedatabase.app','firebaseio.com'));
   }
   return [...new Set(urls)].map(u=>`${u}/kainovel-settings.json`);
+}
+function setSyncStatus(msg,isError=false){
+  const el=document.getElementById('sync-status');
+  if(!el) return;
+  el.textContent=msg||'';
+  el.style.color=isError?'#d81b60':'var(--text-l)';
+}
+async function fetchWithTimeout(url,options={},timeoutMs=12000){
+  const ac=new AbortController();
+  const timer=setTimeout(()=>ac.abort(),timeoutMs);
+  try{
+    return await fetch(url,{...options,signal:ac.signal});
+  }finally{
+    clearTimeout(timer);
+  }
 }
 /* ═══════════════════════════════════════════════════════════════
    LOCATIONS CONFIG
@@ -1867,6 +1883,7 @@ function previewPlace(placeId){
 function openSettings(){
   buildSettingsUI();
   toggleImageSettingsVisibility();
+  setSyncStatus('');
   document.getElementById('s-title').value=G.gameTitle;
   document.getElementById('s-cname').value=G.char1Name;
   document.getElementById('s-bv').value=Math.round(G.bgmVol*100);
@@ -1981,18 +1998,21 @@ function applySharedSettings(parsed){
 async function saveSettingsToServer(){
   const payload=await optimizePayloadForRemote(buildSharePayload());
   const errors=[];
+  setSyncStatus('保存中…');
   try{
     if(window.kaiFirebase?.ready){
       try{
         await window.kaiFirebase.saveSettings(payload);
+        setSyncStatus('Firebaseへ保存しました。');
         alert('Firebaseへ保存しました。');
         return;
       }catch(sdkErr){
         errors.push(`SDK:${sdkErr?.message||sdkErr}`);
         for(const restUrl of getRtdbRestUrls(window.kaiFirebase.rtdbUrl)){
           try{
-            const restRes=await fetch(restUrl,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+            const restRes=await fetchWithTimeout(restUrl,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
             if(restRes.ok){
+              setSyncStatus('Firebaseへ保存しました。');
               alert('Firebaseへ保存しました。');
               return;
             }
@@ -2003,15 +2023,18 @@ async function saveSettingsToServer(){
         }
       }
     }
-    const res=await fetch('/api/settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    const res=await fetchWithTimeout('/api/settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
     if(!res.ok) throw new Error('save failed');
+    setSyncStatus('サーバーへ保存しました。');
     alert('サーバーへ保存しました。');
   }catch(err){
     errors.push(`API:${err?.message||err}`);
+    setSyncStatus('保存に失敗しました。',true);
     alert('保存に失敗しました。Firebase Realtime Database の rules と databaseURL を確認してください。\n'+errors.join('\n'));
   }
 }
 async function loadSettingsFromServer(){
+  setSyncStatus('読み込み中…');
   try{
     let parsed=null;
     if(window.kaiFirebase?.ready){
@@ -2019,7 +2042,7 @@ async function loadSettingsFromServer(){
         parsed=await window.kaiFirebase.loadSettings();
       }catch(_sdkErr){
         for(const restUrl of getRtdbRestUrls(window.kaiFirebase.rtdbUrl)){
-          const restRes=await fetch(restUrl);
+          const restRes=await fetchWithTimeout(restUrl);
           if(restRes.ok){
             parsed=await restRes.json();
             break;
@@ -2027,11 +2050,14 @@ async function loadSettingsFromServer(){
         }
       }
     }else{
-      const res=await fetch('/api/settings');
+      const res=await fetchWithTimeout('/api/settings');
       if(!res.ok) throw new Error('load failed');
       parsed=await res.json();
     }
-    if(!parsed || Object.keys(parsed).length===0) return;
+    if(!parsed || Object.keys(parsed).length===0){
+      setSyncStatus('共有データが空でした。');
+      return;
+    }
     applySharedSettings(parsed);
     document.getElementById('logo-txt').textContent=G.gameTitle;
     buildSettingsUI();
@@ -2040,9 +2066,11 @@ async function loadSettingsFromServer(){
     applyBgForCurrentLoc();
     playSceneBgm();
     await savePersistentData();
+    setSyncStatus(window.kaiFirebase?.ready?'Firebase設定を反映しました。':'サーバー設定を反映しました。');
     alert(window.kaiFirebase?.ready?'Firebase設定を反映しました。':'サーバー設定を反映しました。');
   }catch(err){
-    // server未使用時は静かにスキップ
+    setSyncStatus('読み込みに失敗しました。',true);
+    alert('読み込みに失敗しました。通信状態を確認して再試行してください。');
   }
 }
 async function importSharedSettings(e){
