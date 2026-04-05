@@ -2153,7 +2153,9 @@ function compressImageFile(file,{maxWidth=1280,maxHeight=1280,quality=0.82}={}){
         const ctx=canvas.getContext('2d');
         if(!ctx){reject(new Error('canvas error'));return;}
         ctx.drawImage(img,0,0,width,height);
-        resolve(canvas.toDataURL('image/jpeg',quality));
+        const srcType=(file.type||'').toLowerCase();
+        const outType=(srcType==='image/png' || srcType==='image/webp') ? 'image/webp' : 'image/jpeg';
+        resolve(canvas.toDataURL(outType,quality));
       };
       img.onerror=()=>reject(new Error('image decode error'));
       img.src=reader.result;
@@ -2175,7 +2177,10 @@ function compressDataUrl(dataUrl,{maxWidth=1280,maxHeight=1280,quality=0.75}={})
       const ctx=canvas.getContext('2d');
       if(!ctx){reject(new Error('canvas error'));return;}
       ctx.drawImage(img,0,0,width,height);
-      resolve(canvas.toDataURL('image/jpeg',quality));
+      const m=String(dataUrl).match(/^data:(image\/[a-zA-Z0-9.+-]+);/);
+      const srcType=(m?.[1]||'').toLowerCase();
+      const outType=(srcType==='image/png' || srcType==='image/webp') ? 'image/webp' : 'image/jpeg';
+      resolve(canvas.toDataURL(outType,quality));
     };
     img.onerror=()=>reject(new Error('image decode error'));
     img.src=dataUrl;
