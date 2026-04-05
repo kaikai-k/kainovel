@@ -443,7 +443,8 @@ body{font-family:'Noto Sans JP',sans-serif;background:#111;color:var(--text);}
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-analytics.js";
-import { getDatabase, ref, get, set } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-database.js";
+import { getDatabase, ref as dbRef, get, set } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-database.js";
+import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-storage.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyCw-Mi25A4ta6O1x-GTtkQUCyxmtik2zCU",
@@ -459,16 +460,35 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 try{ getAnalytics(app); }catch(_e){}
 const db = getDatabase(app);
+const storage = getStorage(app);
+
+async function dataUrlToBlob(dataUrl){
+  const res=await fetch(dataUrl);
+  return await res.blob();
+}
+function simpleHash(str){
+  let h=0;
+  for(let i=0;i<str.length;i++) h=((h<<5)-h)+str.charCodeAt(i)|0;
+  return Math.abs(h).toString(36);
+}
 
 window.kaiFirebase = {
   ready:true,
   rtdbUrl: firebaseConfig.databaseURL,
   async saveSettings(payload){
-    await set(ref(db,'kainovel-settings'), payload);
+    await set(dbRef(db,'kainovel-settings'), payload);
   },
   async loadSettings(){
-    const snap = await get(ref(db,'kainovel-settings'));
+    const snap = await get(dbRef(db,'kainovel-settings'));
     return snap.exists() ? snap.val() : null;
+  },
+  async uploadDataUrl(dataUrl,prefix='images'){
+    const blob=await dataUrlToBlob(dataUrl);
+    const ext=(blob.type||'image/jpeg').split('/')[1]||'jpg';
+    const key=`${prefix}/${Date.now()}-${simpleHash(dataUrl.slice(0,256))}.${ext}`;
+    const r=storageRef(storage,key);
+    await uploadBytes(r,blob,{contentType:blob.type||'image/jpeg'});
+    return await getDownloadURL(r);
   }
 };
 </script>
@@ -2216,6 +2236,7 @@ function compressDataUrl(dataUrl,{maxWidth=1280,maxHeight=1280,quality=0.75}={})
 }
 async function optimizePayloadForRemote(payload){
   const cloned=JSON.parse(JSON.stringify(payload||{}));
+  const uploadedCache=new Map();
   const maybeCompress=async (value)=>{
     if(typeof value!=='string') return value;
     if(!value.startsWith('data:image/')) return value;
@@ -2226,11 +2247,28 @@ async function optimizePayloadForRemote(payload){
       return value;
     }
   };
+  const maybeUpload=async (value,prefix)=>{
+    if(typeof value!=='string') return value;
+    if(!value.startsWith('data:image/')) return value;
+    if(!window.kaiFirebase?.uploadDataUrl) return value;
+    if(uploadedCache.has(value)) return uploadedCache.get(value);
+    try{
+      const url=await window.kaiFirebase.uploadDataUrl(value,prefix);
+      uploadedCache.set(value,url);
+      return url;
+    }catch(_e){
+      return value;
+    }
+  };
+  const normalizeImage=async (value,prefix)=>{
+    const compressed=await maybeCompress(value);
+    return await maybeUpload(compressed,prefix);
+  };
   if(cloned.defaultAssets){
-    cloned.defaultAssets.bg=await maybeCompress(cloned.defaultAssets.bg);
+    cloned.defaultAssets.bg=await normalizeImage(cloned.defaultAssets.bg,'default');
     if(cloned.defaultAssets.sprites){
       for(const k of ['normal','smile','surprise','sad']){
-        cloned.defaultAssets.sprites[k]=await maybeCompress(cloned.defaultAssets.sprites[k]);
+        cloned.defaultAssets.sprites[k]=await normalizeImage(cloned.defaultAssets.sprites[k],`default/${k}`);
       }
     }
   }
@@ -2238,10 +2276,10 @@ async function optimizePayloadForRemote(payload){
     for(const key of Object.keys(cloned.locData)){
       const row=cloned.locData[key];
       if(!row) continue;
-      row.bg=await maybeCompress(row.bg);
+      row.bg=await normalizeImage(row.bg,`loc/${key}/bg`);
       if(row.sprites){
         for(const k of ['normal','smile','surprise','sad']){
-          row.sprites[k]=await maybeCompress(row.sprites[k]);
+          row.sprites[k]=await normalizeImage(row.sprites[k],`loc/${key}/${k}`);
         }
       }
     }
@@ -2250,7 +2288,7 @@ async function optimizePayloadForRemote(payload){
     for(const key of Object.keys(cloned.cgData)){
       const row=cloned.cgData[key];
       if(!row) continue;
-      row.url=await maybeCompress(row.url);
+      row.url=await normalizeImage(row.url,`cg/${key}`);
     }
   }
   return cloned;
