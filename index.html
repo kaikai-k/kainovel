@@ -224,6 +224,7 @@ body{font-family:'Noto Sans JP',sans-serif;background:#111;color:var(--text);}
 .fz{border:1.5px dashed var(--pink-l);border-radius:10px;padding:12px;text-align:center;cursor:pointer;position:relative;overflow:hidden;transition:all .2s;font-size:13px;color:var(--text-l);}
 .fz:hover{border-color:var(--pink);background:var(--pink-ll);}
 .fz input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;}
+.fz .si,.fz button{position:relative;z-index:2;}
 .fok{color:var(--green);font-size:11px;margin-top:3px;}
 .sr{display:flex;align-items:center;gap:10px;}
 .sr input[type=range]{flex:1;accent-color:var(--pink);}
@@ -2121,8 +2122,8 @@ function resetSharedSettings(){
   CG_SCENES.forEach(scene=>{
     cgData[scene.id]={url:null,name:''};
   });
-  G.char1Name='かいと';
-  G.gameTitle='Kaichan Novel';
+  G.char1Name='カイ';
+  G.gameTitle='カイくん恋愛ゲーム';
   G.bgmVol=80;
   G.seVol=90;
   G.textSpeed='normal';
