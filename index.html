@@ -216,6 +216,7 @@ body{font-family:'Noto Sans JP',sans-serif;background:#111;color:var(--text);}
 .es{border:1.5px dashed var(--pink-l);border-radius:10px;padding:10px 6px;text-align:center;cursor:pointer;transition:all .2s;position:relative;overflow:hidden;min-height:70px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;}
 .es:hover{border-color:var(--pink);background:var(--pink-ll);}
 .es input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;}
+.es .si,.es button{position:relative;z-index:2;}
 .es .el{font-size:11px;color:var(--pink-d);font-weight:700;}
 .es .eh{font-size:12px;color:var(--text-l);}
 .es .eok{font-size:10px;color:var(--green);word-break:break-all;line-height:1.3;}
@@ -558,6 +559,7 @@ const PLACE_PRESETS = [
   { id:'custom_place2',    base:'other',      name:'カスタム場所2',      defaultBg:'linear-gradient(160deg,#c8c0c8,#b8b0c0)' },
   { id:'custom_place3',    base:'other',      name:'カスタム場所3',      defaultBg:'linear-gradient(160deg,#c8c0c8,#b8b0c0)' },
 ];
+const DEFAULT_PLACE_NAMES=Object.fromEntries(PLACE_PRESETS.map(p=>[p.id,p.name]));
 // locData[placeId] = { bg: dataUrl|null, sprites: {normal,smile,surprise,sad} }
 const locData = {};
 const defaultAssets = {
@@ -2079,7 +2081,15 @@ async function loadSettingsFromServer(){
       parsed=await res.json();
     }
     if(!parsed || Object.keys(parsed).length===0){
-      setSyncStatus('共有データが空でした。');
+      resetSharedSettings();
+      document.getElementById('logo-txt').textContent=G.gameTitle;
+      buildSettingsUI();
+      toggleImageSettingsVisibility();
+      updateAudioDeleteButtons();
+      applyBgForCurrentLoc();
+      playSceneBgm();
+      await savePersistentData();
+      setSyncStatus('共有データが空だったためローカル設定を初期化しました。');
       return;
     }
     applySharedSettings(parsed);
@@ -2096,6 +2106,30 @@ async function loadSettingsFromServer(){
     setSyncStatus('読み込みに失敗しました。',true);
     alert('読み込みに失敗しました。通信状態を確認して再試行してください。');
   }
+}
+function resetSharedSettings(){
+  PLACE_PRESETS.forEach(loc=>{
+    locData[loc.id]={
+      bg:null,
+      sprites:{normal:null,smile:null,surprise:null,sad:null}
+    };
+    sceneBgmData[loc.id]={url:null,name:''};
+    if(DEFAULT_PLACE_NAMES[loc.id]) loc.name=DEFAULT_PLACE_NAMES[loc.id];
+  });
+  defaultAssets.bg=null;
+  defaultAssets.sprites={normal:null,smile:null,surprise:null,sad:null};
+  CG_SCENES.forEach(scene=>{
+    cgData[scene.id]={url:null,name:''};
+  });
+  G.char1Name='かいと';
+  G.gameTitle='Kaichan Novel';
+  G.bgmVol=80;
+  G.seVol=90;
+  G.textSpeed='normal';
+  G.bgmUrl=null;
+  G.seUrl=null;
+  G.choiceSeUrl=null;
+  G.nextSeUrl=null;
 }
 async function importSharedSettings(e){
   const f=e.target.files?.[0];
