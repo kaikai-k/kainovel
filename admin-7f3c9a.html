@@ -473,6 +473,12 @@ function simpleHash(str){
   for(let i=0;i<str.length;i++) h=((h<<5)-h)+str.charCodeAt(i)|0;
   return Math.abs(h).toString(36);
 }
+function withPromiseTimeout(promise,timeoutMs=12000,message='timeout'){
+  return Promise.race([
+    promise,
+    new Promise((_,reject)=>setTimeout(()=>reject(new Error(message)),timeoutMs))
+  ]);
+}
 
 window.kaiFirebase = {
   ready:true,
@@ -480,10 +486,10 @@ window.kaiFirebase = {
   storageUploadEnabled:true,
   storageUploadError:'',
   async saveSettings(payload){
-    await set(dbRef(db,'kainovel-settings'), payload);
+    await withPromiseTimeout(set(dbRef(db,'kainovel-settings'), payload),12000,'firebase-save-timeout');
   },
   async loadSettings(){
-    const snap = await get(dbRef(db,'kainovel-settings'));
+    const snap = await withPromiseTimeout(get(dbRef(db,'kainovel-settings')),12000,'firebase-load-timeout');
     return snap.exists() ? snap.val() : null;
   },
   async uploadDataUrl(dataUrl,prefix='images'){
@@ -495,8 +501,8 @@ window.kaiFirebase = {
     const key=`${prefix}/${Date.now()}-${simpleHash(dataUrl.slice(0,256))}.${ext}`;
     try{
       const r=storageRef(storage,key);
-      await uploadBytes(r,blob,{contentType:blob.type||'image/jpeg'});
-      return await getDownloadURL(r);
+      await withPromiseTimeout(uploadBytes(r,blob,{contentType:blob.type||'image/jpeg'}),15000,'storage-upload-timeout');
+      return await withPromiseTimeout(getDownloadURL(r),12000,'storage-url-timeout');
     }catch(err){
       this.storageUploadEnabled=false;
       this.storageUploadError=err?.message||String(err);
