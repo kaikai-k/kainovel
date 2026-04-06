@@ -383,8 +383,11 @@ body{font-family:'Noto Sans JP',sans-serif;background:#111;color:var(--text);}
       <button class="bc" type="button" onclick="loadSettingsFromServer()">サーバーから反映</button>
       <button class="bp" id="save-settings-btn" type="button" onclick="saveSettingsToServer()">サーバーへ保存</button>
     </div>
+    <div class="sx" data-admin-only style="margin-top:8px">
+      <button class="bc" type="button" onclick="clearLocalImageCache()" style="border-color:#d81b60;color:#d81b60">🗑️ ローカル画像キャッシュをクリア</button>
+    </div>
     <div id="sync-status" class="hint" data-admin-only style="margin-top:6px"></div>
-    <div class="hint" data-admin-only style="margin-top:6px">Firebase Realtime Database に保存します。RTDBを使わない場合は <code>npm start</code> のローカルサーバーAPIにフォールバックします。</div>
+    <div class="hint" data-admin-only style="margin-top:6px;line-height:1.7">💡 <strong>URL管理モード</strong>：画像はImgur等にアップしてURLを入力してください。Firebase Realtime Database にURLのみ保存し全端末に反映します。<br>⚠️ 以前ファイルを直接アップしたデータが残っている場合は「ローカル画像キャッシュをクリア」を実行してください。</div>
 
     <h3 data-admin-only>🎼 シーン別BGM設定</h3>
     <div class="hint" data-admin-only style="margin-bottom:10px">場所ごとにBGMを設定できます。未設定の場所では上の「BGM（ループ再生）」が流れます。</div>
@@ -445,7 +448,7 @@ body{font-family:'Noto Sans JP',sans-serif;background:#111;color:var(--text);}
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js";
-import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-analytics.js";
+
 import { getDatabase, ref as dbRef, get, set } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-database.js";
 
 const firebaseConfig = {
@@ -460,7 +463,7 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-try{ getAnalytics(app); }catch(_e){}
+
 const db = getDatabase(app);
 
 function withPromiseTimeout(promise,timeoutMs=12000,message='timeout'){
@@ -1972,26 +1975,31 @@ function exportSharedSettings(){
   URL.revokeObjectURL(a.href);
 }
 function applySharedSettings(parsed){
+  function sanitizeUrl(v){
+    if(typeof v!=='string') return null;
+    if(v.startsWith('blob:') || v.startsWith('data:')) return null;
+    return v;
+  }
   if(parsed.locData){
     PLACE_PRESETS.forEach(loc=>{
       const d=parsed.locData[loc.id];
       if(!d) return;
-      locData[loc.id].bg=d.bg||null;
+      locData[loc.id].bg=sanitizeUrl(d.bg);
       locData[loc.id].sprites={
-        normal:d.sprites?.normal||null,
-        smile:d.sprites?.smile||null,
-        surprise:d.sprites?.surprise||null,
-        sad:d.sprites?.sad||null
+        normal:sanitizeUrl(d.sprites?.normal),
+        smile:sanitizeUrl(d.sprites?.smile),
+        surprise:sanitizeUrl(d.sprites?.surprise),
+        sad:sanitizeUrl(d.sprites?.sad)
       };
     });
   }
   if(parsed.defaultAssets){
-    defaultAssets.bg=parsed.defaultAssets.bg||null;
+    defaultAssets.bg=sanitizeUrl(parsed.defaultAssets.bg);
     defaultAssets.sprites={
-      normal:parsed.defaultAssets.sprites?.normal||null,
-      smile:parsed.defaultAssets.sprites?.smile||null,
-      surprise:parsed.defaultAssets.sprites?.surprise||null,
-      sad:parsed.defaultAssets.sprites?.sad||null
+      normal:sanitizeUrl(parsed.defaultAssets.sprites?.normal),
+      smile:sanitizeUrl(parsed.defaultAssets.sprites?.smile),
+      surprise:sanitizeUrl(parsed.defaultAssets.sprites?.surprise),
+      sad:sanitizeUrl(parsed.defaultAssets.sprites?.sad)
     };
   }
   if(parsed.cgData){
@@ -2137,6 +2145,34 @@ async function loadSettingsFromServer(){
     setSyncStatus('読み込みに失敗しました。',true);
     alert('読み込みに失敗しました。通信状態を確認して再試行してください。');
   }
+}
+async function clearLocalImageCache(){
+  // IndexedDBに残っているblob:/data: URLをすべて除去してRTDBのURL設定を再反映する
+  function sanitizeUrl(v){
+    if(typeof v!=='string') return null;
+    if(v.startsWith('blob:') || v.startsWith('data:')) return null;
+    return v;
+  }
+  PLACE_PRESETS.forEach(loc=>{
+    locData[loc.id].bg = sanitizeUrl(locData[loc.id].bg);
+    ['normal','smile','surprise','sad'].forEach(e=>{
+      locData[loc.id].sprites[e] = sanitizeUrl(locData[loc.id].sprites[e]);
+    });
+  });
+  defaultAssets.bg = sanitizeUrl(defaultAssets.bg);
+  ['normal','smile','surprise','sad'].forEach(e=>{
+    defaultAssets.sprites[e] = sanitizeUrl(defaultAssets.sprites[e]);
+  });
+  CG_SCENES.forEach(scene=>{
+    if(cgData[scene.id]?.url && (cgData[scene.id].url.startsWith('blob:') || cgData[scene.id].url.startsWith('data:'))){
+      cgData[scene.id] = {url:null, name:''};
+    }
+  });
+  await savePersistentData();
+  buildSettingsUI();
+  applyBgForCurrentLoc();
+  alert('ローカル画像キャッシュをクリアしました。
+URLで設定した画像はそのまま残ります。');
 }
 function resetSharedSettings(){
   PLACE_PRESETS.forEach(loc=>{
@@ -2454,26 +2490,33 @@ async function loadPersistentData(){
     const parsed=await idbGet(SAVE_KEY);
     if(!parsed)return;
 
+    // blob:/data: URLは古いファイルアップロード残骸のため除去
+    function sanitizeUrl(v){
+      if(typeof v!=='string') return null;
+      if(v.startsWith('blob:') || v.startsWith('data:')) return null;
+      return v;
+    }
+
     if(parsed.locData){
       PLACE_PRESETS.forEach(loc=>{
         const savedLoc=parsed.locData[loc.id];
         if(!savedLoc)return;
-        locData[loc.id].bg=savedLoc.bg||null;
+        locData[loc.id].bg=sanitizeUrl(savedLoc.bg);
         locData[loc.id].sprites={
-          normal:savedLoc.sprites?.normal||null,
-          smile:savedLoc.sprites?.smile||null,
-          surprise:savedLoc.sprites?.surprise||null,
-          sad:savedLoc.sprites?.sad||null,
+          normal:sanitizeUrl(savedLoc.sprites?.normal),
+          smile:sanitizeUrl(savedLoc.sprites?.smile),
+          surprise:sanitizeUrl(savedLoc.sprites?.surprise),
+          sad:sanitizeUrl(savedLoc.sprites?.sad),
         };
       });
     }
     if(parsed.defaultAssets){
-      defaultAssets.bg=parsed.defaultAssets.bg||null;
+      defaultAssets.bg=sanitizeUrl(parsed.defaultAssets.bg);
       defaultAssets.sprites={
-        normal:parsed.defaultAssets.sprites?.normal||null,
-        smile:parsed.defaultAssets.sprites?.smile||null,
-        surprise:parsed.defaultAssets.sprites?.surprise||null,
-        sad:parsed.defaultAssets.sprites?.sad||null,
+        normal:sanitizeUrl(parsed.defaultAssets.sprites?.normal),
+        smile:sanitizeUrl(parsed.defaultAssets.sprites?.smile),
+        surprise:sanitizeUrl(parsed.defaultAssets.sprites?.surprise),
+        sad:sanitizeUrl(parsed.defaultAssets.sprites?.sad),
       };
     }
 
