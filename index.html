@@ -477,6 +477,8 @@ function simpleHash(str){
 window.kaiFirebase = {
   ready:true,
   rtdbUrl: firebaseConfig.databaseURL,
+  storageUploadEnabled:true,
+  storageUploadError:'',
   async saveSettings(payload){
     await set(dbRef(db,'kainovel-settings'), payload);
   },
@@ -485,12 +487,21 @@ window.kaiFirebase = {
     return snap.exists() ? snap.val() : null;
   },
   async uploadDataUrl(dataUrl,prefix='images'){
+    if(this.storageUploadEnabled===false){
+      throw new Error(this.storageUploadError||'storage upload disabled');
+    }
     const blob=await dataUrlToBlob(dataUrl);
     const ext=(blob.type||'image/jpeg').split('/')[1]||'jpg';
     const key=`${prefix}/${Date.now()}-${simpleHash(dataUrl.slice(0,256))}.${ext}`;
-    const r=storageRef(storage,key);
-    await uploadBytes(r,blob,{contentType:blob.type||'image/jpeg'});
-    return await getDownloadURL(r);
+    try{
+      const r=storageRef(storage,key);
+      await uploadBytes(r,blob,{contentType:blob.type||'image/jpeg'});
+      return await getDownloadURL(r);
+    }catch(err){
+      this.storageUploadEnabled=false;
+      this.storageUploadError=err?.message||String(err);
+      throw err;
+    }
   }
 };
 </script>
@@ -2335,6 +2346,7 @@ async function optimizePayloadForRemote(payload){
     if(typeof value!=='string') return value;
     if(!value.startsWith('data:image/')) return value;
     if(!window.kaiFirebase?.uploadDataUrl) return value;
+    if(window.kaiFirebase.storageUploadEnabled===false) return value;
     if(uploadedCache.has(value)) return uploadedCache.get(value);
     try{
       const url=await window.kaiFirebase.uploadDataUrl(value,prefix);
