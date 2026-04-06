@@ -2098,19 +2098,52 @@ async function saveSettingsToServer(){
 }
 async function optimizePayloadForRemoteWithFallback(payload){
   if(window.kaiFirebase?.storageUploadEnabled===false){
-    return payload;
+    const sanitized=sanitizeRemotePayload(payload);
+    if(sanitized.removedCount>0){
+      setSyncStatus(`Storage未使用のため画像データ${sanitized.removedCount}件を除外して保存します。`);
+    }
+    return sanitized.payload;
   }
   const timeoutMs=8000;
   try{
-    return await Promise.race([
+    const optimized=await Promise.race([
       optimizePayloadForRemote(payload),
       new Promise((_,reject)=>setTimeout(()=>reject(new Error('optimize-timeout')),timeoutMs))
     ]);
+    const sanitized=sanitizeRemotePayload(optimized);
+    if(sanitized.removedCount>0){
+      setSyncStatus(`画像URL未設定のデータ${sanitized.removedCount}件を除外して保存します。`);
+    }
+    return sanitized.payload;
   }catch(err){
     console.warn('最適化をスキップして保存します', err);
-    setSyncStatus('保存準備に時間がかかるため最適化をスキップします。');
-    return payload;
+    const sanitized=sanitizeRemotePayload(payload);
+    if(sanitized.removedCount>0){
+      setSyncStatus(`最適化をスキップし、画像データ${sanitized.removedCount}件を除外して保存します。`);
+    }else{
+      setSyncStatus('保存準備に時間がかかるため最適化をスキップします。');
+    }
+    return sanitized.payload;
   }
+}
+function sanitizeRemotePayload(payload){
+  let removedCount=0;
+  const walk=(value)=>{
+    if(typeof value==='string' && value.startsWith('data:image/')){
+      removedCount++;
+      return null;
+    }
+    if(Array.isArray(value)) return value.map(walk);
+    if(value && typeof value==='object'){
+      const out={};
+      Object.keys(value).forEach(key=>{
+        out[key]=walk(value[key]);
+      });
+      return out;
+    }
+    return value;
+  };
+  return { payload:walk(payload), removedCount };
 }
 async function loadSettingsFromServer(){
   setSyncStatus('読み込み中…');
