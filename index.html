@@ -365,10 +365,10 @@ body{font-family:'Noto Sans JP',sans-serif;background:#111;color:var(--text);}
     <div class="ss" data-admin-only><label class="sl">👤 キャラクター名（ゲーム内表示）</label><input class="si" id="s-cname" type="text" placeholder="カイ"></div>
 
     <h3>🎵 サウンド</h3>
-    <div class="ss" data-admin-only><label class="sl">BGM（ループ再生）</label><div class="sx"><div class="fz"><div>クリックで選択</div><div class="fok" id="bgm-ok"></div><input type="file" accept="audio/*" onchange="handleBgmFile(event)"></div><button class="delbtn" id="clear-bgm-btn" type="button" onclick="clearGlobalBgm()">削除</button></div></div>
-    <div class="ss" data-admin-only><label class="sl">テキスト送りSE</label><div class="sx"><div class="fz"><div>クリックで選択</div><div class="fok" id="se-ok"></div><input type="file" accept="audio/*" onchange="handleSeFile(event)"></div><button class="delbtn" id="clear-se-btn" type="button" onclick="clearSe()">削除</button></div></div>
-    <div class="ss" data-admin-only><label class="sl">選択肢クリックSE</label><div class="sx"><div class="fz"><div>クリックで選択</div><div class="fok" id="choice-se-ok"></div><input type="file" accept="audio/*" onchange="handleChoiceSeFile(event)"></div><button class="delbtn" id="clear-choice-se-btn" type="button" onclick="clearChoiceSe()">削除</button></div></div>
-    <div class="ss" data-admin-only><label class="sl">テキスト切り替えSE（▼を押す時）</label><div class="sx"><div class="fz"><div>クリックで選択</div><div class="fok" id="next-se-ok"></div><input type="file" accept="audio/*" onchange="handleNextSeFile(event)"></div><button class="delbtn" id="clear-next-se-btn" type="button" onclick="clearNextSe()">削除</button></div></div>
+    <div class="ss" data-admin-only><label class="sl">BGM（ループ再生）</label><div class="sx"><input class="si" id="bgm-url-input" type="text" placeholder="BGM URL（mp3など）" style="flex:1"><button class="delbtn" type="button" onclick="setGlobalBgmUrl()">URL設定</button><button class="delbtn" id="clear-bgm-btn" type="button" onclick="clearGlobalBgm()">削除</button></div><div class="fok" id="bgm-ok"></div></div>
+    <div class="ss" data-admin-only><label class="sl">テキスト送りSE</label><div class="sx"><input class="si" id="se-url-input" type="text" placeholder="SE URL（mp3など）" style="flex:1"><button class="delbtn" type="button" onclick="setSeUrl()">URL設定</button><button class="delbtn" id="clear-se-btn" type="button" onclick="clearSe()">削除</button></div><div class="fok" id="se-ok"></div></div>
+    <div class="ss" data-admin-only><label class="sl">選択肢クリックSE</label><div class="sx"><input class="si" id="choice-se-url-input" type="text" placeholder="SE URL" style="flex:1"><button class="delbtn" type="button" onclick="setChoiceSeUrl()">URL設定</button><button class="delbtn" id="clear-choice-se-btn" type="button" onclick="clearChoiceSe()">削除</button></div><div class="fok" id="choice-se-ok"></div></div>
+    <div class="ss" data-admin-only><label class="sl">テキスト切り替えSE（▼を押す時）</label><div class="sx"><input class="si" id="next-se-url-input" type="text" placeholder="SE URL" style="flex:1"><button class="delbtn" type="button" onclick="setNextSeUrl()">URL設定</button><button class="delbtn" id="clear-next-se-btn" type="button" onclick="clearNextSe()">削除</button></div><div class="fok" id="next-se-ok"></div></div>
     <div class="ss"><label class="sl">BGM音量</label><div class="sr"><input type="range" min="0" max="100" id="s-bv" oninput="lv('b',this.value)"><span id="bv-n">70</span></div></div>
     <div class="ss"><label class="sl">SE音量</label><div class="sr"><input type="range" min="0" max="100" id="s-sv" oninput="lv('s',this.value)"><span id="sv-n">80</span></div></div>
     <div class="ss"><label class="sl">テキスト速度</label><div class="sr"><input type="range" min="1" max="10" id="s-spd" oninput="document.getElementById('sp-n').textContent=this.value"><span id="sp-n">5</span></div></div>
@@ -400,15 +400,16 @@ body{font-family:'Noto Sans JP',sans-serif;background:#111;color:var(--text);}
       <div class="loc-body" id="lb-default">
         <div class="ss">
           <label class="sl">🌅 デフォルト背景画像</label>
-          <div class="sx"><div class="fz"><div>クリックで選択</div><div class="fok" id="bgok-default"></div><input data-asset-admin type="file" accept="image/*" onchange="handleDefaultBg(event)"></div><button class="delbtn" type="button" onclick="clearDefaultBg()" id="clear-default-bg-btn" data-asset-admin>削除</button></div>
+          <div class="sx"><input class="si" data-asset-admin id="bgurl-default" type="text" placeholder="背景画像URL（例：https://i.imgur.com/xxx.jpg）" style="flex:1"><button class="delbtn" type="button" onclick="setDefaultBgUrl()" data-asset-admin>URL設定</button><button class="delbtn" type="button" onclick="clearDefaultBg()" id="clear-default-bg-btn" data-asset-admin>削除</button></div>
+          <div class="fok" id="bgok-default"></div>
         </div>
         <div class="ss">
           <label class="sl">🖼️ デフォルト立ち絵 4表情</label>
           <div class="eg">
-            <div class="es"><div class="el">😐 通常</div><div class="eh">選択</div><div class="eok" id="spok-default-normal"></div><input data-asset-admin type="file" accept="image/*" onchange="handleDefaultSprite(event,'normal')"><input class="si" id="spurl-default-normal" type="text" placeholder="画像URL" style="margin-top:4px;padding:6px 8px;font-size:11px"><button class="delbtn" style="margin-top:4px;padding:4px 10px;font-size:10px" type="button" onclick="setDefaultSpriteUrl('normal')" data-asset-admin>URL設定</button><button class="delbtn" style="margin-top:4px;padding:4px 10px;font-size:10px" type="button" onclick="clearDefaultSprite('normal')" id="clear-default-normal-btn" data-asset-admin>削除</button></div>
-            <div class="es"><div class="el">😊 笑顔</div><div class="eh">選択</div><div class="eok" id="spok-default-smile"></div><input data-asset-admin type="file" accept="image/*" onchange="handleDefaultSprite(event,'smile')"><input class="si" id="spurl-default-smile" type="text" placeholder="画像URL" style="margin-top:4px;padding:6px 8px;font-size:11px"><button class="delbtn" style="margin-top:4px;padding:4px 10px;font-size:10px" type="button" onclick="setDefaultSpriteUrl('smile')" data-asset-admin>URL設定</button><button class="delbtn" style="margin-top:4px;padding:4px 10px;font-size:10px" type="button" onclick="clearDefaultSprite('smile')" id="clear-default-smile-btn" data-asset-admin>削除</button></div>
-            <div class="es"><div class="el">😲 驚き</div><div class="eh">選択</div><div class="eok" id="spok-default-surprise"></div><input data-asset-admin type="file" accept="image/*" onchange="handleDefaultSprite(event,'surprise')"><input class="si" id="spurl-default-surprise" type="text" placeholder="画像URL" style="margin-top:4px;padding:6px 8px;font-size:11px"><button class="delbtn" style="margin-top:4px;padding:4px 10px;font-size:10px" type="button" onclick="setDefaultSpriteUrl('surprise')" data-asset-admin>URL設定</button><button class="delbtn" style="margin-top:4px;padding:4px 10px;font-size:10px" type="button" onclick="clearDefaultSprite('surprise')" id="clear-default-surprise-btn" data-asset-admin>削除</button></div>
-            <div class="es"><div class="el">😢 悲しみ</div><div class="eh">選択</div><div class="eok" id="spok-default-sad"></div><input data-asset-admin type="file" accept="image/*" onchange="handleDefaultSprite(event,'sad')"><input class="si" id="spurl-default-sad" type="text" placeholder="画像URL" style="margin-top:4px;padding:6px 8px;font-size:11px"><button class="delbtn" style="margin-top:4px;padding:4px 10px;font-size:10px" type="button" onclick="setDefaultSpriteUrl('sad')" data-asset-admin>URL設定</button><button class="delbtn" style="margin-top:4px;padding:4px 10px;font-size:10px" type="button" onclick="clearDefaultSprite('sad')" id="clear-default-sad-btn" data-asset-admin>削除</button></div>
+            <div class="es"><div class="el">😐 通常</div><div class="eok" id="spok-default-normal"></div><input class="si" data-asset-admin id="spurl-default-normal" type="text" placeholder="画像URL" style="margin-top:4px;padding:6px 8px;font-size:11px"><button class="delbtn" style="margin-top:4px;padding:4px 10px;font-size:10px" type="button" onclick="setDefaultSpriteUrl('normal')" data-asset-admin>URL設定</button><button class="delbtn" style="margin-top:4px;padding:4px 10px;font-size:10px" type="button" onclick="clearDefaultSprite('normal')" id="clear-default-normal-btn" data-asset-admin>削除</button></div>
+            <div class="es"><div class="el">😊 笑顔</div><div class="eok" id="spok-default-smile"></div><input class="si" data-asset-admin id="spurl-default-smile" type="text" placeholder="画像URL" style="margin-top:4px;padding:6px 8px;font-size:11px"><button class="delbtn" style="margin-top:4px;padding:4px 10px;font-size:10px" type="button" onclick="setDefaultSpriteUrl('smile')" data-asset-admin>URL設定</button><button class="delbtn" style="margin-top:4px;padding:4px 10px;font-size:10px" type="button" onclick="clearDefaultSprite('smile')" id="clear-default-smile-btn" data-asset-admin>削除</button></div>
+            <div class="es"><div class="el">😲 驚き</div><div class="eok" id="spok-default-surprise"></div><input class="si" data-asset-admin id="spurl-default-surprise" type="text" placeholder="画像URL" style="margin-top:4px;padding:6px 8px;font-size:11px"><button class="delbtn" style="margin-top:4px;padding:4px 10px;font-size:10px" type="button" onclick="setDefaultSpriteUrl('surprise')" data-asset-admin>URL設定</button><button class="delbtn" style="margin-top:4px;padding:4px 10px;font-size:10px" type="button" onclick="clearDefaultSprite('surprise')" id="clear-default-surprise-btn" data-asset-admin>削除</button></div>
+            <div class="es"><div class="el">😢 悲しみ</div><div class="eok" id="spok-default-sad"></div><input class="si" data-asset-admin id="spurl-default-sad" type="text" placeholder="画像URL" style="margin-top:4px;padding:6px 8px;font-size:11px"><button class="delbtn" style="margin-top:4px;padding:4px 10px;font-size:10px" type="button" onclick="setDefaultSpriteUrl('sad')" data-asset-admin>URL設定</button><button class="delbtn" style="margin-top:4px;padding:4px 10px;font-size:10px" type="button" onclick="clearDefaultSprite('sad')" id="clear-default-sad-btn" data-asset-admin>削除</button></div>
           </div>
         </div>
       </div>
@@ -446,7 +447,6 @@ body{font-family:'Noto Sans JP',sans-serif;background:#111;color:var(--text);}
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-analytics.js";
 import { getDatabase, ref as dbRef, get, set } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-database.js";
-import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-storage.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyCw-Mi25A4ta6O1x-GTtkQUCyxmtik2zCU",
@@ -462,46 +462,24 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 try{ getAnalytics(app); }catch(_e){}
 const db = getDatabase(app);
-const storage = getStorage(app);
 
-async function dataUrlToBlob(dataUrl){
-  const res=await fetch(dataUrl);
-  return await res.blob();
-}
-function simpleHash(str){
-  let h=0;
-  for(let i=0;i<str.length;i++) h=((h<<5)-h)+str.charCodeAt(i)|0;
-  return Math.abs(h).toString(36);
+function withPromiseTimeout(promise,timeoutMs=12000,message='timeout'){
+  return Promise.race([
+    promise,
+    new Promise((_,reject)=>setTimeout(()=>reject(new Error(message)),timeoutMs))
+  ]);
 }
 
 window.kaiFirebase = {
   ready:true,
   rtdbUrl: firebaseConfig.databaseURL,
-  storageUploadEnabled:true,
-  storageUploadError:'',
+  storageUploadEnabled:false,
   async saveSettings(payload){
-    await set(dbRef(db,'kainovel-settings'), payload);
+    await withPromiseTimeout(set(dbRef(db,'kainovel-settings'), payload),12000,'firebase-save-timeout');
   },
   async loadSettings(){
-    const snap = await get(dbRef(db,'kainovel-settings'));
+    const snap = await withPromiseTimeout(get(dbRef(db,'kainovel-settings')),12000,'firebase-load-timeout');
     return snap.exists() ? snap.val() : null;
-  },
-  async uploadDataUrl(dataUrl,prefix='images'){
-    if(this.storageUploadEnabled===false){
-      throw new Error(this.storageUploadError||'storage upload disabled');
-    }
-    const blob=await dataUrlToBlob(dataUrl);
-    const ext=(blob.type||'image/jpeg').split('/')[1]||'jpg';
-    const key=`${prefix}/${Date.now()}-${simpleHash(dataUrl.slice(0,256))}.${ext}`;
-    try{
-      const r=storageRef(storage,key);
-      await uploadBytes(r,blob,{contentType:blob.type||'image/jpeg'});
-      return await getDownloadURL(r);
-    }catch(err){
-      this.storageUploadEnabled=false;
-      this.storageUploadError=err?.message||String(err);
-      throw err;
-    }
   }
 };
 </script>
@@ -1842,7 +1820,7 @@ function buildSettingsUI(){
     const zone=document.createElement('div');
     zone.className='sx';zone.style.cssText='flex:1;margin:0;';
     const hasBgm=sceneBgmData[loc.id] && sceneBgmData[loc.id].url;
-    zone.innerHTML=`<div class="fz" style="margin:0;min-height:48px;padding:8px;"><div style="font-size:12px">${hasBgm?'BGMを変更':'クリックでBGMを登録'}</div><div class="fok" id="scbgm-${loc.id}">${hasBgm?'✓ '+(sceneBgmData[loc.id].name||'設定済み'):''}</div><input type="file" accept="audio/*" onchange="handleSceneBgm(event,'${loc.id}')"></div><button class="delbtn" type="button" onclick="clearSceneBgm('${loc.id}')" ${hasBgm?'':'disabled'}>削除</button>`;
+    zone.innerHTML=`<input class="si" style="flex:1;font-size:12px;padding:8px 10px" id="scbgm-url-${loc.id}" type="text" placeholder="BGM URL（mp3など）" value="${escapeHtml(sceneBgmData[loc.id]?.url||'')}"><button class="delbtn" style="white-space:nowrap" type="button" onclick="setSceneBgmUrl('${loc.id}')">URL設定</button><button class="delbtn" type="button" onclick="clearSceneBgm('${loc.id}')" ${hasBgm?'':'disabled'}>削除</button><div class="fok" style="font-size:11px;margin-top:2px" id="scbgm-${loc.id}">${hasBgm?'✓ '+(sceneBgmData[loc.id].name||'設定済み'):''}</div>`;
     row.appendChild(label);row.appendChild(zone);
     sb.appendChild(row);
   });
@@ -1865,15 +1843,16 @@ function buildSettingsUI(){
         ${customNameArea}
         <div class="ss">
           <label class="sl">🌅 背景画像</label>
-          <div class="sx"><div class="fz"><div>クリックで選択</div><div class="fok" id="bgok-${loc.id}"></div><input ${assetDisabled} type="file" accept="image/*" onchange="handleLocBg(event,'${loc.id}')"></div><button class="delbtn" type="button" onclick="clearLocBg('${loc.id}')" ${(canEditAssets()&&locData[loc.id].bg)?'':'disabled'} data-asset-admin>削除</button></div>
+          <div class="sx"><input class="si" ${assetDisabled} style="flex:1" id="bgurl-${loc.id}" type="text" placeholder="背景画像URL" value="${escapeHtml(locData[loc.id].bg&&!locData[loc.id].bg.startsWith('data:')?locData[loc.id].bg:'')}"><button class="delbtn" type="button" onclick="setLocBgUrl('${loc.id}')" ${assetDisabled}>URL設定</button><button class="delbtn" type="button" onclick="clearLocBg('${loc.id}')" ${(canEditAssets()&&locData[loc.id].bg)?'':'disabled'} data-asset-admin>削除</button></div>
+          <div class="fok" id="bgok-${loc.id}"></div>
         </div>
         <div class="ss">
           <label class="sl">🖼️ 立ち絵 4表情（この場所の衣装）</label>
           <div class="eg">
-            <div class="es"><div class="el">😐 通常</div><div class="eh">選択</div><div class="eok" id="spok-${loc.id}-normal"></div><input ${assetDisabled} type="file" accept="image/*" onchange="handleLocSprite(event,'${loc.id}','normal')"><input class="si" style="margin-top:4px;padding:6px 8px;font-size:11px" id="spurl-${loc.id}-normal" type="text" value="${escapeHtml(locData[loc.id].sprites.normal||'')}" placeholder="画像URL"><button class="delbtn" style="margin-top:4px;padding:4px 10px;font-size:10px" type="button" onclick="setLocSpriteUrl('${loc.id}','normal')" ${assetDisabled}>URL設定</button><button class="delbtn" style="margin-top:4px;padding:4px 10px;font-size:10px" type="button" onclick="clearLocSprite('${loc.id}','normal')" ${(canEditAssets()&&locData[loc.id].sprites.normal)?'':'disabled'} data-asset-admin>削除</button></div>
-            <div class="es"><div class="el">😊 笑顔</div><div class="eh">選択</div><div class="eok" id="spok-${loc.id}-smile"></div><input ${assetDisabled} type="file" accept="image/*" onchange="handleLocSprite(event,'${loc.id}','smile')"><input class="si" style="margin-top:4px;padding:6px 8px;font-size:11px" id="spurl-${loc.id}-smile" type="text" value="${escapeHtml(locData[loc.id].sprites.smile||'')}" placeholder="画像URL"><button class="delbtn" style="margin-top:4px;padding:4px 10px;font-size:10px" type="button" onclick="setLocSpriteUrl('${loc.id}','smile')" ${assetDisabled}>URL設定</button><button class="delbtn" style="margin-top:4px;padding:4px 10px;font-size:10px" type="button" onclick="clearLocSprite('${loc.id}','smile')" ${(canEditAssets()&&locData[loc.id].sprites.smile)?'':'disabled'} data-asset-admin>削除</button></div>
-            <div class="es"><div class="el">😲 驚き</div><div class="eh">選択</div><div class="eok" id="spok-${loc.id}-surprise"></div><input ${assetDisabled} type="file" accept="image/*" onchange="handleLocSprite(event,'${loc.id}','surprise')"><input class="si" style="margin-top:4px;padding:6px 8px;font-size:11px" id="spurl-${loc.id}-surprise" type="text" value="${escapeHtml(locData[loc.id].sprites.surprise||'')}" placeholder="画像URL"><button class="delbtn" style="margin-top:4px;padding:4px 10px;font-size:10px" type="button" onclick="setLocSpriteUrl('${loc.id}','surprise')" ${assetDisabled}>URL設定</button><button class="delbtn" style="margin-top:4px;padding:4px 10px;font-size:10px" type="button" onclick="clearLocSprite('${loc.id}','surprise')" ${(canEditAssets()&&locData[loc.id].sprites.surprise)?'':'disabled'} data-asset-admin>削除</button></div>
-            <div class="es"><div class="el">😢 悲しみ</div><div class="eh">選択</div><div class="eok" id="spok-${loc.id}-sad"></div><input ${assetDisabled} type="file" accept="image/*" onchange="handleLocSprite(event,'${loc.id}','sad')"><input class="si" style="margin-top:4px;padding:6px 8px;font-size:11px" id="spurl-${loc.id}-sad" type="text" value="${escapeHtml(locData[loc.id].sprites.sad||'')}" placeholder="画像URL"><button class="delbtn" style="margin-top:4px;padding:4px 10px;font-size:10px" type="button" onclick="setLocSpriteUrl('${loc.id}','sad')" ${assetDisabled}>URL設定</button><button class="delbtn" style="margin-top:4px;padding:4px 10px;font-size:10px" type="button" onclick="clearLocSprite('${loc.id}','sad')" ${(canEditAssets()&&locData[loc.id].sprites.sad)?'':'disabled'} data-asset-admin>削除</button></div>
+            <div class="es"><div class="el">😐 通常</div><div class="eok" id="spok-${loc.id}-normal"></div><input class="si" ${assetDisabled} style="margin-top:4px;padding:6px 8px;font-size:11px" id="spurl-${loc.id}-normal" type="text" value="${escapeHtml(locData[loc.id].sprites.normal&&!locData[loc.id].sprites.normal.startsWith('data:')?locData[loc.id].sprites.normal:'')}" placeholder="画像URL"><button class="delbtn" style="margin-top:4px;padding:4px 10px;font-size:10px" type="button" onclick="setLocSpriteUrl('${loc.id}','normal')" ${assetDisabled}>URL設定</button><button class="delbtn" style="margin-top:4px;padding:4px 10px;font-size:10px" type="button" onclick="clearLocSprite('${loc.id}','normal')" ${(canEditAssets()&&locData[loc.id].sprites.normal)?'':'disabled'} data-asset-admin>削除</button></div>
+            <div class="es"><div class="el">😊 笑顔</div><div class="eok" id="spok-${loc.id}-smile"></div><input class="si" ${assetDisabled} style="margin-top:4px;padding:6px 8px;font-size:11px" id="spurl-${loc.id}-smile" type="text" value="${escapeHtml(locData[loc.id].sprites.smile&&!locData[loc.id].sprites.smile.startsWith('data:')?locData[loc.id].sprites.smile:'')}" placeholder="画像URL"><button class="delbtn" style="margin-top:4px;padding:4px 10px;font-size:10px" type="button" onclick="setLocSpriteUrl('${loc.id}','smile')" ${assetDisabled}>URL設定</button><button class="delbtn" style="margin-top:4px;padding:4px 10px;font-size:10px" type="button" onclick="clearLocSprite('${loc.id}','smile')" ${(canEditAssets()&&locData[loc.id].sprites.smile)?'':'disabled'} data-asset-admin>削除</button></div>
+            <div class="es"><div class="el">😲 驚き</div><div class="eok" id="spok-${loc.id}-surprise"></div><input class="si" ${assetDisabled} style="margin-top:4px;padding:6px 8px;font-size:11px" id="spurl-${loc.id}-surprise" type="text" value="${escapeHtml(locData[loc.id].sprites.surprise&&!locData[loc.id].sprites.surprise.startsWith('data:')?locData[loc.id].sprites.surprise:'')}" placeholder="画像URL"><button class="delbtn" style="margin-top:4px;padding:4px 10px;font-size:10px" type="button" onclick="setLocSpriteUrl('${loc.id}','surprise')" ${assetDisabled}>URL設定</button><button class="delbtn" style="margin-top:4px;padding:4px 10px;font-size:10px" type="button" onclick="clearLocSprite('${loc.id}','surprise')" ${(canEditAssets()&&locData[loc.id].sprites.surprise)?'':'disabled'} data-asset-admin>削除</button></div>
+            <div class="es"><div class="el">😢 悲しみ</div><div class="eok" id="spok-${loc.id}-sad"></div><input class="si" ${assetDisabled} style="margin-top:4px;padding:6px 8px;font-size:11px" id="spurl-${loc.id}-sad" type="text" value="${escapeHtml(locData[loc.id].sprites.sad&&!locData[loc.id].sprites.sad.startsWith('data:')?locData[loc.id].sprites.sad:'')}" placeholder="画像URL"><button class="delbtn" style="margin-top:4px;padding:4px 10px;font-size:10px" type="button" onclick="setLocSpriteUrl('${loc.id}','sad')" ${assetDisabled}>URL設定</button><button class="delbtn" style="margin-top:4px;padding:4px 10px;font-size:10px" type="button" onclick="clearLocSprite('${loc.id}','sad')" ${(canEditAssets()&&locData[loc.id].sprites.sad)?'':'disabled'} data-asset-admin>削除</button></div>
           </div>
           <div class="hint">💡 シナリオ内で {type:'location', loc:'${loc.id}'} と書くとこの場所設定を直接呼び出せます</div>
         </div>
@@ -1897,7 +1876,7 @@ function buildSettingsUI(){
     const zone=document.createElement('div');
     zone.className='sx';zone.style.cssText='flex:1;margin:0;';
     const hasImg=cgData[scene.id].url;
-    zone.innerHTML=`<div class="fz" style="margin:0;min-height:48px;padding:8px;"><div style="font-size:12px">${hasImg?'画像を変更':'クリックで画像を登録'}</div><div class="fok" id="cgok-${scene.id}">${hasImg?'✓ '+cgData[scene.id].name:''}</div><input ${assetDisabled} type="file" accept="image/*" onchange="handleCG(event,'${scene.id}')"><input class="si" style="margin-top:6px;padding:6px 8px;font-size:11px" id="cgurl-${scene.id}" type="text" value="${escapeHtml(cgData[scene.id].url||'')}" placeholder="画像URL"><button class="delbtn" style="margin-top:6px" type="button" onclick="setCGUrl('${scene.id}')" ${assetDisabled}>URL設定</button></div><button class="delbtn" type="button" onclick="clearCG('${scene.id}')" ${(canEditAssets()&&hasImg)?'':'disabled'} data-asset-admin>削除</button>`;
+    zone.innerHTML=`<div style="flex:1"><input class="si" ${assetDisabled} style="font-size:12px;padding:8px 10px;width:100%" id="cgurl-${scene.id}" type="text" value="${escapeHtml(cgData[scene.id].url&&!cgData[scene.id].url.startsWith('data:')?cgData[scene.id].url:'')}" placeholder="CG画像URL（例：https://i.imgur.com/xxx.jpg）"><div style="display:flex;gap:6px;margin-top:4px"><button class="delbtn" style="font-size:11px;padding:5px 10px" type="button" onclick="setCGUrl('${scene.id}')" ${assetDisabled}>URL設定</button><button class="delbtn" style="font-size:11px;padding:5px 10px" type="button" onclick="clearCG('${scene.id}')" ${(canEditAssets()&&hasImg)?'':'disabled'} data-asset-admin>削除</button></div><div class="fok" id="cgok-${scene.id}">${hasImg?'✓ '+cgData[scene.id].name:''}</div></div>`;
     row.appendChild(label);row.appendChild(zone);
     cc.appendChild(row);
   });
@@ -1938,6 +1917,11 @@ function openSettings(){
   document.getElementById('se-ok').textContent=G.seUrl ? '✓ 設定済み' : '';
   document.getElementById('choice-se-ok').textContent=G.choiceSeUrl ? '✓ 設定済み' : '';
   document.getElementById('next-se-ok').textContent=G.nextSeUrl ? '✓ 設定済み' : '';
+  const _bi=document.getElementById('bgm-url-input');if(_bi)_bi.value=G.bgmUrl||'';
+  const _si=document.getElementById('se-url-input');if(_si)_si.value=G.seUrl||'';
+  const _ci=document.getElementById('choice-se-url-input');if(_ci)_ci.value=G.choiceSeUrl||'';
+  const _ni=document.getElementById('next-se-url-input');if(_ni)_ni.value=G.nextSeUrl||'';
+  const _dbi=document.getElementById('bgurl-default');if(_dbi&&defaultAssets.bg&&!defaultAssets.bg.startsWith('data:'))_dbi.value=defaultAssets.bg;
   ['normal','smile','surprise','sad'].forEach(expr=>{
     const el=document.getElementById(`spurl-default-${expr}`);
     if(el) el.value=defaultAssets.sprites[expr]||'';
@@ -2051,7 +2035,8 @@ async function saveSettingsToServer(){
   setSyncStatus('保存準備中…');
   const errors=[];
   try{
-    const payload=await optimizePayloadForRemote(buildSharePayload());
+    const basePayload=buildSharePayload();
+    const payload=await optimizePayloadForRemoteWithFallback(basePayload);
     setSyncStatus('保存中…');
     if(window.kaiFirebase?.ready){
       try{
@@ -2087,6 +2072,22 @@ async function saveSettingsToServer(){
   }finally{
     isSavingRemote=false;
     setSaveButtonBusy(false);
+  }
+}
+async function optimizePayloadForRemoteWithFallback(payload){
+  if(window.kaiFirebase?.storageUploadEnabled===false){
+    return payload;
+  }
+  const timeoutMs=8000;
+  try{
+    return await Promise.race([
+      optimizePayloadForRemote(payload),
+      new Promise((_,reject)=>setTimeout(()=>reject(new Error('optimize-timeout')),timeoutMs))
+    ]);
+  }catch(err){
+    console.warn('最適化をスキップして保存します', err);
+    setSyncStatus('保存準備に時間がかかるため最適化をスキップします。');
+    return payload;
   }
 }
 async function loadSettingsFromServer(){
@@ -2330,41 +2331,17 @@ function compressDataUrl(dataUrl,{maxWidth=1280,maxHeight=1280,quality=0.75}={})
   });
 }
 async function optimizePayloadForRemote(payload){
+  // URL管理モード：base64データは保存しない。URLのみそのまま通過させる。
   const cloned=JSON.parse(JSON.stringify(payload||{}));
-  const uploadedCache=new Map();
-  const maybeCompress=async (value)=>{
-    if(typeof value!=='string') return value;
-    if(!value.startsWith('data:image/')) return value;
-    if(value.length < 900000) return value;
-    try{
-      return await compressDataUrl(value);
-    }catch(_e){
-      return value;
-    }
-  };
-  const maybeUpload=async (value,prefix)=>{
-    if(typeof value!=='string') return value;
-    if(!value.startsWith('data:image/')) return value;
-    if(!window.kaiFirebase?.uploadDataUrl) return value;
-    if(window.kaiFirebase.storageUploadEnabled===false) return value;
-    if(uploadedCache.has(value)) return uploadedCache.get(value);
-    try{
-      const url=await window.kaiFirebase.uploadDataUrl(value,prefix);
-      uploadedCache.set(value,url);
-      return url;
-    }catch(_e){
-      return value;
-    }
-  };
-  const normalizeImage=async (value,prefix)=>{
-    const compressed=await maybeCompress(value);
-    return await maybeUpload(compressed,prefix);
+  const stripBase64=(value)=>{
+    if(typeof value==='string' && value.startsWith('data:')) return null;
+    return value;
   };
   if(cloned.defaultAssets){
-    cloned.defaultAssets.bg=await normalizeImage(cloned.defaultAssets.bg,'default');
+    cloned.defaultAssets.bg=stripBase64(cloned.defaultAssets.bg);
     if(cloned.defaultAssets.sprites){
       for(const k of ['normal','smile','surprise','sad']){
-        cloned.defaultAssets.sprites[k]=await normalizeImage(cloned.defaultAssets.sprites[k],`default/${k}`);
+        cloned.defaultAssets.sprites[k]=stripBase64(cloned.defaultAssets.sprites[k]);
       }
     }
   }
@@ -2372,10 +2349,10 @@ async function optimizePayloadForRemote(payload){
     for(const key of Object.keys(cloned.locData)){
       const row=cloned.locData[key];
       if(!row) continue;
-      row.bg=await normalizeImage(row.bg,`loc/${key}/bg`);
+      row.bg=stripBase64(row.bg);
       if(row.sprites){
         for(const k of ['normal','smile','surprise','sad']){
-          row.sprites[k]=await normalizeImage(row.sprites[k],`loc/${key}/${k}`);
+          row.sprites[k]=stripBase64(row.sprites[k]);
         }
       }
     }
@@ -2384,7 +2361,7 @@ async function optimizePayloadForRemote(payload){
     for(const key of Object.keys(cloned.cgData)){
       const row=cloned.cgData[key];
       if(!row) continue;
-      row.url=await normalizeImage(row.url,`cg/${key}`);
+      row.url=stripBase64(row.url);
     }
   }
   return cloned;
@@ -2559,31 +2536,78 @@ async function loadPersistentData(){
     console.error('保存データの読み込みに失敗しました', err);
   }
 }
-async function handleDefaultBg(e){
+/* ── URL設定関数（ファイルアップロード廃止・URL管理モード）── */
+async function setDefaultBgUrl(){
   if(!guardAssetEdit()) return;
-  const f=e.target.files[0];if(!f)return;
-  try{
-    defaultAssets.bg=await compressImageFile(f);
-    const ok=document.getElementById('bgok-default');if(ok)ok.textContent='✓ '+f.name;
-    const btn=document.getElementById('clear-default-bg-btn'); if(btn) btn.disabled=false;
-    applyBgForCurrentLoc();
-    savePersistentData();
-  }catch(err){
-    alert('デフォルト背景画像の保存に失敗しました');
-  }
+  const el=document.getElementById('bgurl-default');
+  const url=(el?.value||'').trim();
+  if(!url){alert('URLを入力してください');return;}
+  defaultAssets.bg=url;
+  const ok=document.getElementById('bgok-default');if(ok)ok.textContent='✓ URL設定済み';
+  const btn=document.getElementById('clear-default-bg-btn');if(btn)btn.disabled=false;
+  applyBgForCurrentLoc();
+  await savePersistentData();
 }
-async function handleDefaultSprite(e,expr){
+async function setLocBgUrl(locId){
   if(!guardAssetEdit()) return;
-  const f=e.target.files[0];if(!f)return;
-  try{
-    defaultAssets.sprites[expr]=await compressImageFile(f);
-    const ok=document.getElementById(`spok-default-${expr}`);if(ok)ok.textContent='✓ '+f.name;
-    const btn=document.getElementById(`clear-default-${expr}-btn`); if(btn) btn.disabled=false;
-    savePersistentData();
-  }catch(err){
-    alert('デフォルト立ち絵の保存に失敗しました');
-  }
+  const el=document.getElementById('bgurl-'+locId);
+  const url=(el?.value||'').trim();
+  if(!url){alert('URLを入力してください');return;}
+  locData[locId].bg=url;
+  const ok=document.getElementById('bgok-'+locId);if(ok)ok.textContent='✓ URL設定済み';
+  if(getEffectivePlaceId()===locId) applyBgForCurrentLoc();
+  await savePersistentData();
 }
+async function setSceneBgmUrl(locId){
+  const el=document.getElementById('scbgm-url-'+locId);
+  const url=(el?.value||'').trim();
+  if(!url){alert('URLを入力してください');return;}
+  sceneBgmData[locId]={url,name:'URL設定'};
+  const ok=document.getElementById('scbgm-'+locId);if(ok)ok.textContent='✓ URL設定済み';
+  if(G.currentLoc===locId||getEffectivePlaceId()===locId) playSceneBgm();
+  buildSettingsUI();
+  await savePersistentData();
+}
+async function setGlobalBgmUrl(){
+  const el=document.getElementById('bgm-url-input');
+  const url=(el?.value||'').trim();
+  if(!url){alert('URLを入力してください');return;}
+  G.bgmUrl=url;
+  document.getElementById('bgm-ok').textContent='✓ URL設定済み';
+  updateAudioDeleteButtons();
+  playSceneBgm();
+  await savePersistentData();
+}
+async function setSeUrl(){
+  const el=document.getElementById('se-url-input');
+  const url=(el?.value||'').trim();
+  if(!url){alert('URLを入力してください');return;}
+  G.seUrl=url;
+  document.getElementById('se-ok').textContent='✓ URL設定済み';
+  updateAudioDeleteButtons();
+  await savePersistentData();
+}
+async function setChoiceSeUrl(){
+  const el=document.getElementById('choice-se-url-input');
+  const url=(el?.value||'').trim();
+  if(!url){alert('URLを入力してください');return;}
+  G.choiceSeUrl=url;
+  document.getElementById('choice-se-ok').textContent='✓ URL設定済み';
+  updateAudioDeleteButtons();
+  await savePersistentData();
+}
+async function setNextSeUrl(){
+  const el=document.getElementById('next-se-url-input');
+  const url=(el?.value||'').trim();
+  if(!url){alert('URLを入力してください');return;}
+  G.nextSeUrl=url;
+  document.getElementById('next-se-ok').textContent='✓ URL設定済み';
+  updateAudioDeleteButtons();
+  await savePersistentData();
+}
+/* ── 旧ファイルハンドラ（使用しないが互換のためスタブのみ残す）── */
+function handleDefaultBg(){}
+function handleDefaultSprite(){}
 async function clearDefaultBg(){
   if(!guardAssetEdit()) return;
   defaultAssets.bg=null;
@@ -2599,96 +2623,14 @@ async function clearDefaultSprite(expr){
   const btn=document.getElementById(`clear-default-${expr}-btn`); if(btn) btn.disabled=true;
   await savePersistentData();
 }
-async function handleLocBg(e,locId){
-  if(!guardAssetEdit()) return;
-  const f=e.target.files[0];if(!f)return;
-  try{
-    locData[locId].bg=await compressImageFile(f);
-    const ok=document.getElementById('bgok-'+locId);if(ok)ok.textContent='✓ '+f.name;
-    if(getEffectivePlaceId()===locId) applyBgForCurrentLoc();
-    savePersistentData();
-  }catch(err){
-    alert('背景画像の保存に失敗しました');
-  }
-}
-async function handleLocSprite(e,locId,expr){
-  if(!guardAssetEdit()) return;
-  const f=e.target.files[0];if(!f)return;
-  try{
-    locData[locId].sprites[expr]=await compressImageFile(f);
-    const ok=document.getElementById(`spok-${locId}-${expr}`);if(ok)ok.textContent='✓ '+f.name;
-    savePersistentData();
-  }catch(err){
-    alert('立ち絵の保存に失敗しました');
-  }
-}
-async function handleCG(e,sceneId){
-  if(!guardAssetEdit()) return;
-  const f=e.target.files[0];if(!f)return;
-  try{
-    cgData[sceneId]={url:await compressImageFile(f),name:f.name};
-    const ok=document.getElementById('cgok-'+sceneId);if(ok)ok.textContent='✓ '+f.name;
-    savePersistentData();
-  }catch(err){
-    alert('CG画像の保存に失敗しました');
-  }
-}
-async function handleBgmFile(e){
-  const f=e.target.files[0];if(!f)return;
-  try{
-    G.bgmUrl=await readFileAsDataURL(f);
-    document.getElementById('bgm-ok').textContent='✓ '+f.name;
-    updateAudioDeleteButtons();
-    savePersistentData();
-    playSceneBgm();
-  }catch(err){
-    alert('BGMの保存に失敗しました');
-  }
-}
-async function handleSceneBgm(e,locId){
-  const f=e.target.files[0];if(!f)return;
-  try{
-    sceneBgmData[locId]={url:await readFileAsDataURL(f),name:f.name};
-    const ok=document.getElementById('scbgm-'+locId);if(ok)ok.textContent='✓ '+f.name;
-    savePersistentData();
-    if(G.currentLoc===locId || getEffectivePlaceId()===locId)playSceneBgm();
-  }catch(err){
-    alert('シーン別BGMの保存に失敗しました');
-  }
-}
-async function handleSeFile(e){
-  const f=e.target.files[0];if(!f)return;
-  try{
-    G.seUrl=await readFileAsDataURL(f);
-    document.getElementById('se-ok').textContent='✓ '+f.name;
-    updateAudioDeleteButtons();
-    savePersistentData();
-  }catch(err){
-    alert('SEの保存に失敗しました');
-  }
-}
-async function handleChoiceSeFile(e){
-  const f=e.target.files[0];if(!f)return;
-  try{
-    G.choiceSeUrl=await readFileAsDataURL(f);
-    document.getElementById('choice-se-ok').textContent='✓ '+f.name;
-    updateAudioDeleteButtons();
-    savePersistentData();
-  }catch(err){
-    alert('選択肢SEの保存に失敗しました');
-  }
-}
-async function handleNextSeFile(e){
-  const f=e.target.files[0];if(!f)return;
-  try{
-    G.nextSeUrl=await readFileAsDataURL(f);
-    document.getElementById('next-se-ok').textContent='✓ '+f.name;
-    updateAudioDeleteButtons();
-    savePersistentData();
-  }catch(err){
-    alert('テキスト切り替えSEの保存に失敗しました');
-  }
-}
+function handleLocBg(){}
+function handleLocSprite(){}
+function handleCG(){}
+function handleBgmFile(){}
+function handleSceneBgm(){}
+function handleSeFile(){}
+function handleChoiceSeFile(){}
+function handleNextSeFile(){}
 
 /* Save / Load */
 function bsave(){return{label:G.label,index:G.index,affection:G.affection,loveFlag:G.loveFlag,playerName:G.playerName,currentLoc:G.currentLoc,currentScene:G.currentScene,history:[...G.history],preview:document.getElementById('txt').textContent.slice(0,26),date:new Date().toLocaleString('ja-JP')};}
