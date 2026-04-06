@@ -328,7 +328,7 @@ body{font-family:'Noto Sans JP',sans-serif;background:#111;color:var(--text);}
   <div id="sprite-wrap" class="hidden"><img id="sprite-img" src="" alt=""></div>
   <div id="ch-wrap" class="hidden"></div>
 
-  <div id="textbox" onclick="handleClick()">
+  <div id="textbox" onclick="handleClick()" ontouchstart="handleTouch(event)">
     <div id="tb-inner">
       <div id="nm-wrap">
         <span id="nm-icon" data-e="1">🌸</span>
@@ -1516,7 +1516,7 @@ const G = {
   loveFlag:false,
   currentLoc:'classroom',
   currentScene:'start',
-  isTyping:false, textDone:false,
+  isTyping:false, textDone:false, _cgPending:false,
   autoMode:false, autoTimer:null,
   textSpeed:5, bgmVol:.7, seVol:.8,
   bgmUrl:null, seUrl:null, choiceSeUrl:null, nextSeUrl:null,
@@ -1552,10 +1552,11 @@ function moveToLabel(label){
 function startGame(){
   showScr('game-screen');
   G.label='start';G.currentScene='start';G.index=0;G.history=[];G.affection=8;
-  G.isTyping=false;G.textDone=false;G.autoMode=false;
+  G.isTyping=false;G.textDone=false;G.autoMode=false;G._cgPending=false;
   clearTimeout(typeTimer);clearTimeout(G.autoTimer);
   document.getElementById('auto-btn').classList.remove('active');
   document.getElementById('auto-corner').classList.remove('show');
+  document.getElementById('cg-layer').classList.remove('show');
   renderHearts();savePersistentData();advance();
 }
 function goTitle(){
@@ -1688,7 +1689,12 @@ function nextStep(){
   if(!document.getElementById('ch-wrap').classList.contains('hidden'))return;
   G.index++;G.textDone=false;document.getElementById('nxt').classList.remove('v');advance();
 }
+function handleTouch(e){
+  e.preventDefault(); // 300ms遅延とダブル発火を防ぐ
+  handleClick();
+}
 function handleClick(){
+  if(G._cgPending) return; // CG表示中はテキストボックスのタップを無視
   if(G.isTyping){
     clearTimeout(typeTimer);
     const s=(SCENARIO[G.label]||[])[G.index];
