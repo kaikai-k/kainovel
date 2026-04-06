@@ -381,7 +381,7 @@ body{font-family:'Noto Sans JP',sans-serif;background:#111;color:var(--text);}
     </div>
     <div class="sx" data-admin-only style="margin-top:8px">
       <button class="bc" type="button" onclick="loadSettingsFromServer()">サーバーから反映</button>
-      <button class="bp" type="button" onclick="saveSettingsToServer()">サーバーへ保存</button>
+      <button class="bp" id="save-settings-btn" type="button" onclick="saveSettingsToServer()">サーバーへ保存</button>
     </div>
     <div id="sync-status" class="hint" data-admin-only style="margin-top:6px"></div>
     <div class="hint" data-admin-only style="margin-top:6px">Firebase Realtime Database に保存します。RTDBを使わない場合は <code>npm start</code> のローカルサーバーAPIにフォールバックします。</div>
@@ -512,6 +512,14 @@ function setSyncStatus(msg,isError=false){
   if(!el) return;
   el.textContent=msg||'';
   el.style.color=isError?'#d81b60':'var(--text-l)';
+}
+let isSavingRemote=false;
+function setSaveButtonBusy(isBusy){
+  const btn=document.getElementById('save-settings-btn');
+  if(!btn) return;
+  btn.disabled=!!isBusy;
+  btn.style.opacity=isBusy?'0.7':'';
+  btn.textContent=isBusy?'保存中…':'サーバーへ保存';
 }
 async function fetchWithTimeout(url,options={},timeoutMs=12000){
   const ac=new AbortController();
@@ -2023,10 +2031,17 @@ function applySharedSettings(parsed){
   }
 }
 async function saveSettingsToServer(){
-  const payload=await optimizePayloadForRemote(buildSharePayload());
+  if(isSavingRemote){
+    setSyncStatus('保存処理中です。完了までお待ちください。');
+    return;
+  }
+  isSavingRemote=true;
+  setSaveButtonBusy(true);
+  setSyncStatus('保存準備中…');
   const errors=[];
-  setSyncStatus('保存中…');
   try{
+    const payload=await optimizePayloadForRemote(buildSharePayload());
+    setSyncStatus('保存中…');
     if(window.kaiFirebase?.ready){
       try{
         await window.kaiFirebase.saveSettings(payload);
@@ -2058,6 +2073,9 @@ async function saveSettingsToServer(){
     errors.push(`API:${err?.message||err}`);
     setSyncStatus('保存に失敗しました。',true);
     alert('保存に失敗しました。Firebase Realtime Database の rules と databaseURL を確認してください。\n'+errors.join('\n'));
+  }finally{
+    isSavingRemote=false;
+    setSaveButtonBusy(false);
   }
 }
 async function loadSettingsFromServer(){
