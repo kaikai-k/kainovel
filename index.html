@@ -2140,7 +2140,7 @@ async function loadSettingsFromServer(){
     playSceneBgm();
     await savePersistentData();
     setSyncStatus(window.kaiFirebase?.ready?'Firebase設定を反映しました。':'サーバー設定を反映しました。');
-    alert(window.kaiFirebase?.ready?'Firebase設定を反映しました。':'サーバー設定を反映しました。');
+    // alert削除: ステータス表示のみ
   }catch(err){
     setSyncStatus('読み込みに失敗しました。',true);
     alert('読み込みに失敗しました。通信状態を確認して再試行してください。');
@@ -2707,7 +2707,6 @@ function openLog(){
 
 async function initApp(){
   await loadPersistentData();
-  await loadSettingsFromServer();
   assetAdminUnlocked=isAdminMode();
   refreshSettingsAccess();
   toggleImageSettingsVisibility();
@@ -2716,6 +2715,8 @@ async function initApp(){
   if(isAdminMode() && location.hash==='#settings'){
     openSettings();
   }
+  // Firebaseからの設定読み込みはバックグラウンドで（タイトル操作をブロックしない）
+  loadSettingsFromServer().catch(()=>{});
 }
 initApp();
 
