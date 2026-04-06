@@ -2171,8 +2171,7 @@ async function clearLocalImageCache(){
   await savePersistentData();
   buildSettingsUI();
   applyBgForCurrentLoc();
-  alert('ローカル画像キャッシュをクリアしました。
-URLで設定した画像はそのまま残ります。');
+  alert('ローカル画像キャッシュをクリアしました。\nURLで設定した画像はそのまま残ります。');
 }
 function resetSharedSettings(){
   PLACE_PRESETS.forEach(loc=>{
