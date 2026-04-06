@@ -2056,7 +2056,7 @@ async function saveSettingsToServer(){
       try{
         await window.kaiFirebase.saveSettings(payload);
         setSyncStatus('Firebaseへ保存しました。');
-        alert('Firebaseへ保存しました。');
+        setSyncStatus('Firebaseへ保存しました ✓');
         return;
       }catch(sdkErr){
         errors.push(`SDK:${sdkErr?.message||sdkErr}`);
@@ -2065,7 +2065,7 @@ async function saveSettingsToServer(){
             const restRes=await fetchWithTimeout(restUrl,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
             if(restRes.ok){
               setSyncStatus('Firebaseへ保存しました。');
-              alert('Firebaseへ保存しました。');
+              setSyncStatus('Firebaseへ保存しました ✓');
               return;
             }
             errors.push(`REST:${restRes.status} ${restUrl}`);
@@ -2078,11 +2078,11 @@ async function saveSettingsToServer(){
     const res=await fetchWithTimeout('/api/settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
     if(!res.ok) throw new Error('save failed');
     setSyncStatus('サーバーへ保存しました。');
-    alert('サーバーへ保存しました。');
+    setSyncStatus('サーバーへ保存しました ✓');
   }catch(err){
     errors.push(`API:${err?.message||err}`);
     setSyncStatus('保存に失敗しました。',true);
-    alert('保存に失敗しました。Firebase Realtime Database の rules と databaseURL を確認してください。\n'+errors.join('\n'));
+    setSyncStatus('保存に失敗しました。Firebaseのrulesを確認してください。', true); console.error(errors);
   }finally{
     isSavingRemote=false;
     setSaveButtonBusy(false);
@@ -2128,9 +2128,8 @@ async function loadSettingsFromServer(){
     if(!parsed || Object.keys(parsed).length===0){
       resetSharedSettings();
       document.getElementById('logo-txt').textContent=G.gameTitle;
-      buildSettingsUI();
-      toggleImageSettingsVisibility();
-      updateAudioDeleteButtons();
+      const settingsOpen2 = !document.getElementById('settings-modal').classList.contains('hidden');
+      if(settingsOpen2){ buildSettingsUI(); toggleImageSettingsVisibility(); updateAudioDeleteButtons(); }
       applyBgForCurrentLoc();
       playSceneBgm();
       await savePersistentData();
@@ -2139,17 +2138,20 @@ async function loadSettingsFromServer(){
     }
     applySharedSettings(parsed);
     document.getElementById('logo-txt').textContent=G.gameTitle;
-    buildSettingsUI();
-    toggleImageSettingsVisibility();
-    updateAudioDeleteButtons();
+    // 設定モーダルが開いている時だけUIを再構築（ゲーム中に余計な処理をしない）
+    const settingsOpen = !document.getElementById('settings-modal').classList.contains('hidden');
+    if(settingsOpen){
+      buildSettingsUI();
+      toggleImageSettingsVisibility();
+      updateAudioDeleteButtons();
+    }
     applyBgForCurrentLoc();
     playSceneBgm();
     await savePersistentData();
     setSyncStatus(window.kaiFirebase?.ready?'Firebase設定を反映しました。':'サーバー設定を反映しました。');
-    // alert削除: ステータス表示のみ
   }catch(err){
     setSyncStatus('読み込みに失敗しました。',true);
-    alert('読み込みに失敗しました。通信状態を確認して再試行してください。');
+    // alert削除: コンソールのみ
   }
 }
 async function clearLocalImageCache(){
