@@ -446,45 +446,37 @@ body{font-family:'Noto Sans JP',sans-serif;background:#111;color:var(--text);}
 <div id="load-modal" class="mo hidden"><div class="mb"><h2>ロード</h2><div class="sg" id="load-slots"></div><div class="mf"><button class="bc" onclick="cm('load-modal')">閉じる</button></div></div></div>
 <div id="log-modal" class="mo hidden"><div class="mb"><h2>バックログ</h2><div id="log-list"></div><div class="mf"><button class="bc" onclick="cm('log-modal')">閉じる</button></div></div></div>
 
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js";
-
-import { getDatabase, ref as dbRef, get, set } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-database.js";
-
-const firebaseConfig = {
-  apiKey: "AIzaSyCw-Mi25A4ta6O1x-GTtkQUCyxmtik2zCU",
-  authDomain: "kainovel.firebaseapp.com",
-  databaseURL: "https://kainovel-default-rtdb.firebaseio.com",
-  projectId: "kainovel",
-  storageBucket: "kainovel.firebasestorage.app",
-  messagingSenderId: "594039203222",
-  appId: "1:594039203222:web:ef2506f14fd97b63b269b7",
-  measurementId: "G-FBEC2F34N5"
-};
-
-const app = initializeApp(firebaseConfig);
-
-const db = getDatabase(app);
-
-function withPromiseTimeout(promise,timeoutMs=12000,message='timeout'){
-  return Promise.race([
-    promise,
-    new Promise((_,reject)=>setTimeout(()=>reject(new Error(message)),timeoutMs))
-  ]);
-}
-
-window.kaiFirebase = {
-  ready:true,
-  rtdbUrl: firebaseConfig.databaseURL,
-  storageUploadEnabled:false,
-  async saveSettings(payload){
-    await withPromiseTimeout(set(dbRef(db,'kainovel-settings'), payload),12000,'firebase-save-timeout');
-  },
-  async loadSettings(){
-    const snap = await withPromiseTimeout(get(dbRef(db,'kainovel-settings')),12000,'firebase-load-timeout');
-    return snap.exists() ? snap.val() : null;
+<script>
+// Firebase REST API モード（SDK不要・module非依存）
+(function(){
+  const RTDB_URL = 'https://kainovel-default-rtdb.firebaseio.com';
+  const ENDPOINT = RTDB_URL + '/kainovel-settings.json';
+  function withTimeout(promise, ms){
+    return Promise.race([
+      promise,
+      new Promise((_,r)=>setTimeout(()=>r(new Error('timeout')), ms))
+    ]);
   }
-};
+  window.kaiFirebase = {
+    ready: true,
+    rtdbUrl: RTDB_URL,
+    storageUploadEnabled: false,
+    async saveSettings(payload){
+      const res = await withTimeout(fetch(ENDPOINT, {
+        method: 'PUT',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify(payload)
+      }), 12000);
+      if(!res.ok) throw new Error('save failed: ' + res.status);
+    },
+    async loadSettings(){
+      const res = await withTimeout(fetch(ENDPOINT), 12000);
+      if(!res.ok) throw new Error('load failed: ' + res.status);
+      const data = await res.json();
+      return data;
+    }
+  };
+})();
 </script>
 
 <script>
@@ -2030,8 +2022,12 @@ function applySharedSettings(parsed){
   if(parsed.settings){
     G.char1Name=parsed.settings.char1Name||G.char1Name;
     G.gameTitle=parsed.settings.gameTitle||G.gameTitle;
-    G.bgmVol=typeof parsed.settings.bgmVol==='number'?parsed.settings.bgmVol:G.bgmVol;
-    G.seVol=typeof parsed.settings.seVol==='number'?parsed.settings.seVol:G.seVol;
+    if(typeof parsed.settings.bgmVol==='number'){
+      G.bgmVol = parsed.settings.bgmVol > 1 ? parsed.settings.bgmVol/100 : parsed.settings.bgmVol;
+    }
+    if(typeof parsed.settings.seVol==='number'){
+      G.seVol = parsed.settings.seVol > 1 ? parsed.settings.seVol/100 : parsed.settings.seVol;
+    }
     G.textSpeed=parsed.settings.textSpeed||G.textSpeed;
     G.bgmUrl=parsed.settings.bgmUrl||null;
     G.seUrl=parsed.settings.seUrl||null;
@@ -2040,49 +2036,17 @@ function applySharedSettings(parsed){
   }
 }
 async function saveSettingsToServer(){
-  if(isSavingRemote){
-    setSyncStatus('保存処理中です。完了までお待ちください。');
-    return;
-  }
+  if(isSavingRemote){ setSyncStatus('保存処理中です。'); return; }
   isSavingRemote=true;
   setSaveButtonBusy(true);
-  setSyncStatus('保存準備中…');
-  const errors=[];
+  setSyncStatus('保存中…');
   try{
-    const basePayload=buildSharePayload();
-    const payload=await optimizePayloadForRemoteWithFallback(basePayload);
-    setSyncStatus('保存中…');
-    if(window.kaiFirebase?.ready){
-      try{
-        await window.kaiFirebase.saveSettings(payload);
-        setSyncStatus('Firebaseへ保存しました。');
-        setSyncStatus('Firebaseへ保存しました ✓');
-        return;
-      }catch(sdkErr){
-        errors.push(`SDK:${sdkErr?.message||sdkErr}`);
-        for(const restUrl of getRtdbRestUrls(window.kaiFirebase.rtdbUrl)){
-          try{
-            const restRes=await fetchWithTimeout(restUrl,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
-            if(restRes.ok){
-              setSyncStatus('Firebaseへ保存しました。');
-              setSyncStatus('Firebaseへ保存しました ✓');
-              return;
-            }
-            errors.push(`REST:${restRes.status} ${restUrl}`);
-          }catch(restErr){
-            errors.push(`REST:${restErr?.message||restErr}`);
-          }
-        }
-      }
-    }
-    const res=await fetchWithTimeout('/api/settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
-    if(!res.ok) throw new Error('save failed');
-    setSyncStatus('サーバーへ保存しました。');
-    setSyncStatus('サーバーへ保存しました ✓');
+    const payload=await optimizePayloadForRemoteWithFallback(buildSharePayload());
+    await window.kaiFirebase.saveSettings(payload);
+    setSyncStatus('Firebaseへ保存しました ✓');
   }catch(err){
-    errors.push(`API:${err?.message||err}`);
-    setSyncStatus('保存に失敗しました。',true);
-    setSyncStatus('保存に失敗しました。Firebaseのrulesを確認してください。', true); console.error(errors);
+    setSyncStatus('保存に失敗しました：'+(err?.message||err), true);
+    console.error('save error', err);
   }finally{
     isSavingRemote=false;
     setSaveButtonBusy(false);
@@ -2108,22 +2072,12 @@ async function loadSettingsFromServer(){
   setSyncStatus('読み込み中…');
   try{
     let parsed=null;
-    if(window.kaiFirebase?.ready){
-      try{
-        parsed=await window.kaiFirebase.loadSettings();
-      }catch(_sdkErr){
-        for(const restUrl of getRtdbRestUrls(window.kaiFirebase.rtdbUrl)){
-          const restRes=await fetchWithTimeout(restUrl);
-          if(restRes.ok){
-            parsed=await restRes.json();
-            break;
-          }
-        }
-      }
-    }else{
-      const res=await fetchWithTimeout('/api/settings');
-      if(!res.ok) throw new Error('load failed');
-      parsed=await res.json();
+    try{
+      parsed=await window.kaiFirebase.loadSettings();
+    }catch(e){
+      console.warn('Firebase load failed', e);
+      setSyncStatus('Firebase読み込み失敗（オフラインモード）', true);
+      return;
     }
     if(!parsed || Object.keys(parsed).length===0){
       resetSharedSettings();
@@ -2197,8 +2151,8 @@ function resetSharedSettings(){
   });
   G.char1Name='カイ';
   G.gameTitle='カイくん恋愛ゲーム';
-  G.bgmVol=80;
-  G.seVol=90;
+  G.bgmVol=0.8;
+  G.seVol=0.9;
   G.textSpeed='normal';
   G.bgmUrl=null;
   G.seUrl=null;
@@ -2568,8 +2522,13 @@ async function loadPersistentData(){
       G.affection=parsed.settings.affection ?? G.affection;
       G.currentLoc=parsed.settings.currentLoc||G.currentLoc;
       G.currentScene=parsed.settings.currentScene||G.currentScene;
-      G.bgmVol=typeof parsed.settings.bgmVol==='number'?parsed.settings.bgmVol:G.bgmVol;
-      G.seVol=typeof parsed.settings.seVol==='number'?parsed.settings.seVol:G.seVol;
+      // 旧データが0-100スケールの場合は0-1に変換
+      if(typeof parsed.settings.bgmVol==='number'){
+        G.bgmVol = parsed.settings.bgmVol > 1 ? parsed.settings.bgmVol/100 : parsed.settings.bgmVol;
+      }
+      if(typeof parsed.settings.seVol==='number'){
+        G.seVol = parsed.settings.seVol > 1 ? parsed.settings.seVol/100 : parsed.settings.seVol;
+      }
       G.textSpeed=parsed.settings.textSpeed||G.textSpeed;
       G.bgmUrl=parsed.settings.bgmUrl||null;
       G.seUrl=parsed.settings.seUrl||null;
