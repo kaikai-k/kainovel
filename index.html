@@ -367,8 +367,8 @@ body{font-family:'Noto Sans JP',sans-serif;background:#111;color:var(--text);}
     <h3>🎵 サウンド</h3>
     <div class="ss" data-admin-only><label class="sl">BGM（ループ再生）</label><div class="sx"><label class="delbtn" style="cursor:pointer">📁 ファイル選択<input type="file" accept="audio/*" style="display:none" onchange="handleBgmFile(event)"></label><input class="si" id="bgm-url-input" type="text" placeholder="またはURLを入力" style="flex:1;font-size:11px"><button class="delbtn" type="button" onclick="setGlobalBgmUrl()">URL</button><button class="delbtn" id="clear-bgm-btn" type="button" onclick="clearGlobalBgm()">削除</button></div><div class="fok" id="bgm-ok"></div></div>
     <div class="ss" data-admin-only><label class="sl">テキスト送りSE</label><div class="sx"><label class="delbtn" style="cursor:pointer">📁 ファイル選択<input type="file" accept="audio/*" style="display:none" onchange="handleSeFile(event)"></label><input class="si" id="se-url-input" type="text" placeholder="またはURLを入力" style="flex:1;font-size:11px"><button class="delbtn" type="button" onclick="setSeUrl()">URL</button><button class="delbtn" id="clear-se-btn" type="button" onclick="clearSe()">削除</button></div><div class="fok" id="se-ok"></div></div>
-    <div class="ss" data-admin-only><label class="sl">選択肢クリックSE</label><div class="sx"><input class="si" id="choice-se-url-input" type="text" placeholder="SE URL" style="flex:1"><button class="delbtn" type="button" onclick="setChoiceSeUrl()">URL設定</button><button class="delbtn" id="clear-choice-se-btn" type="button" onclick="clearChoiceSe()">削除</button></div><div class="fok" id="choice-se-ok"></div></div>
-    <div class="ss" data-admin-only><label class="sl">テキスト切り替えSE（▼を押す時）</label><div class="sx"><input class="si" id="next-se-url-input" type="text" placeholder="SE URL" style="flex:1"><button class="delbtn" type="button" onclick="setNextSeUrl()">URL設定</button><button class="delbtn" id="clear-next-se-btn" type="button" onclick="clearNextSe()">削除</button></div><div class="fok" id="next-se-ok"></div></div>
+    <div class="ss" data-admin-only><label class="sl">選択肢クリックSE</label><div class="sx"><label class="delbtn" style="cursor:pointer">📁 ファイル選択<input type="file" accept="audio/*" style="display:none" onchange="handleChoiceSeFile(event)"></label><input class="si" id="choice-se-url-input" type="text" placeholder="またはURLを入力" style="flex:1;font-size:11px"><button class="delbtn" type="button" onclick="setChoiceSeUrl()">URL</button><button class="delbtn" id="clear-choice-se-btn" type="button" onclick="clearChoiceSe()">削除</button></div><div class="fok" id="choice-se-ok"></div></div>
+    <div class="ss" data-admin-only><label class="sl">テキスト切り替えSE（▼を押す時）</label><div class="sx"><label class="delbtn" style="cursor:pointer">📁 ファイル選択<input type="file" accept="audio/*" style="display:none" onchange="handleNextSeFile(event)"></label><input class="si" id="next-se-url-input" type="text" placeholder="またはURLを入力" style="flex:1;font-size:11px"><button class="delbtn" type="button" onclick="setNextSeUrl()">URL</button><button class="delbtn" id="clear-next-se-btn" type="button" onclick="clearNextSe()">削除</button></div><div class="fok" id="next-se-ok"></div></div>
     <div class="ss"><label class="sl">BGM音量</label><div class="sr"><input type="range" min="0" max="100" id="s-bv" oninput="lv('b',this.value)"><span id="bv-n">70</span></div></div>
     <div class="ss"><label class="sl">SE音量</label><div class="sr"><input type="range" min="0" max="100" id="s-sv" oninput="lv('s',this.value)"><span id="sv-n">80</span></div></div>
     <div class="ss"><label class="sl">テキスト速度</label><div class="sr"><input type="range" min="1" max="10" id="s-spd" oninput="document.getElementById('sp-n').textContent=this.value"><span id="sp-n">5</span></div></div>
@@ -2648,8 +2648,28 @@ async function handleBgmFile(e){
   reader.readAsDataURL(f);
 }
 function handleSceneBgm(){}
-function handleChoiceSeFile(){}
-function handleNextSeFile(){}
+async function handleChoiceSeFile(e){
+  const f=e.target.files[0]; if(!f) return;
+  const reader=new FileReader();
+  reader.onload=async()=>{
+    G.choiceSeUrl=reader.result;
+    document.getElementById('choice-se-ok').textContent='✓ '+f.name;
+    updateAudioDeleteButtons();
+    await savePersistentData();
+  };
+  reader.readAsDataURL(f);
+}
+async function handleNextSeFile(e){
+  const f=e.target.files[0]; if(!f) return;
+  const reader=new FileReader();
+  reader.onload=async()=>{
+    G.nextSeUrl=reader.result;
+    document.getElementById('next-se-ok').textContent='✓ '+f.name;
+    updateAudioDeleteButtons();
+    await savePersistentData();
+  };
+  reader.readAsDataURL(f);
+}
 
 /* Save / Load */
 function bsave(){return{label:G.label,index:G.index,affection:G.affection,loveFlag:G.loveFlag,playerName:G.playerName,currentLoc:G.currentLoc,currentScene:G.currentScene,history:[...G.history],preview:document.getElementById('txt').textContent.slice(0,26),date:new Date().toLocaleString('ja-JP')};}
