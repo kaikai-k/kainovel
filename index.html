@@ -365,8 +365,8 @@ body{font-family:'Noto Sans JP',sans-serif;background:#111;color:var(--text);}
     <div class="ss" data-admin-only><label class="sl">👤 キャラクター名（ゲーム内表示）</label><input class="si" id="s-cname" type="text" placeholder="カイ"></div>
 
     <h3>🎵 サウンド</h3>
-    <div class="ss" data-admin-only><label class="sl">BGM（ループ再生）</label><div class="sx"><input class="si" id="bgm-url-input" type="text" placeholder="BGM URL（mp3など）" style="flex:1"><button class="delbtn" type="button" onclick="setGlobalBgmUrl()">URL設定</button><button class="delbtn" id="clear-bgm-btn" type="button" onclick="clearGlobalBgm()">削除</button></div><div class="fok" id="bgm-ok"></div></div>
-    <div class="ss" data-admin-only><label class="sl">テキスト送りSE</label><div class="sx"><input class="si" id="se-url-input" type="text" placeholder="SE URL（mp3など）" style="flex:1"><button class="delbtn" type="button" onclick="setSeUrl()">URL設定</button><button class="delbtn" id="clear-se-btn" type="button" onclick="clearSe()">削除</button></div><div class="fok" id="se-ok"></div></div>
+    <div class="ss" data-admin-only><label class="sl">BGM（ループ再生）</label><div class="sx"><label class="delbtn" style="cursor:pointer">📁 ファイル選択<input type="file" accept="audio/*" style="display:none" onchange="handleBgmFile(event)"></label><input class="si" id="bgm-url-input" type="text" placeholder="またはURLを入力" style="flex:1;font-size:11px"><button class="delbtn" type="button" onclick="setGlobalBgmUrl()">URL</button><button class="delbtn" id="clear-bgm-btn" type="button" onclick="clearGlobalBgm()">削除</button></div><div class="fok" id="bgm-ok"></div></div>
+    <div class="ss" data-admin-only><label class="sl">テキスト送りSE</label><div class="sx"><label class="delbtn" style="cursor:pointer">📁 ファイル選択<input type="file" accept="audio/*" style="display:none" onchange="handleSeFile(event)"></label><input class="si" id="se-url-input" type="text" placeholder="またはURLを入力" style="flex:1;font-size:11px"><button class="delbtn" type="button" onclick="setSeUrl()">URL</button><button class="delbtn" id="clear-se-btn" type="button" onclick="clearSe()">削除</button></div><div class="fok" id="se-ok"></div></div>
     <div class="ss" data-admin-only><label class="sl">選択肢クリックSE</label><div class="sx"><input class="si" id="choice-se-url-input" type="text" placeholder="SE URL" style="flex:1"><button class="delbtn" type="button" onclick="setChoiceSeUrl()">URL設定</button><button class="delbtn" id="clear-choice-se-btn" type="button" onclick="clearChoiceSe()">削除</button></div><div class="fok" id="choice-se-ok"></div></div>
     <div class="ss" data-admin-only><label class="sl">テキスト切り替えSE（▼を押す時）</label><div class="sx"><input class="si" id="next-se-url-input" type="text" placeholder="SE URL" style="flex:1"><button class="delbtn" type="button" onclick="setNextSeUrl()">URL設定</button><button class="delbtn" id="clear-next-se-btn" type="button" onclick="clearNextSe()">削除</button></div><div class="fok" id="next-se-ok"></div></div>
     <div class="ss"><label class="sl">BGM音量</label><div class="sr"><input type="range" min="0" max="100" id="s-bv" oninput="lv('b',this.value)"><span id="bv-n">70</span></div></div>
@@ -1504,7 +1504,7 @@ summer_transit:[
 const G = {
   label:'start', index:0,
   playerName:'主人公', char1Name:'カイ', gameTitle:'カイくん恋愛ゲーム',
-  affection:8, maxAff:40,
+  affection:2, maxAff:40,
   loveFlag:false,
   currentLoc:'classroom',
   currentScene:'start',
@@ -1543,7 +1543,7 @@ function moveToLabel(label){
 
 function startGame(){
   showScr('game-screen');
-  G.label='start';G.currentScene='start';G.index=0;G.history=[];G.affection=8;
+  G.label='start';G.currentScene='start';G.index=0;G.history=[];G.affection=2;
   G.isTyping=false;G.textDone=false;G.autoMode=false;G._cgPending=false;
   clearTimeout(typeTimer);clearTimeout(G.autoTimer);
   document.getElementById('auto-btn').classList.remove('active');
@@ -2635,9 +2635,19 @@ async function clearDefaultSprite(expr){
 function handleLocBg(){}
 function handleLocSprite(){}
 function handleCG(){}
-function handleBgmFile(){}
+async function handleBgmFile(e){
+  const f=e.target.files[0]; if(!f) return;
+  const reader=new FileReader();
+  reader.onload=async()=>{
+    G.bgmUrl=reader.result;
+    document.getElementById('bgm-ok').textContent='✓ '+f.name;
+    updateAudioDeleteButtons();
+    await savePersistentData();
+    playSceneBgm();
+  };
+  reader.readAsDataURL(f);
+}
 function handleSceneBgm(){}
-function handleSeFile(){}
 function handleChoiceSeFile(){}
 function handleNextSeFile(){}
 
